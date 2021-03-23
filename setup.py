@@ -17,7 +17,9 @@ setup(
   install_requires=[
     'tf-nightly',
     'networkx',
-    'pygraphviz'
+    'pygraphviz',
+    'matplotlib',
+    'imageio'
   ],
   python_requires='>=3.7, <4',
   setup_requires=['pytest-runner'],

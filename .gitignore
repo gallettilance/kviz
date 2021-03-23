@@ -1,5 +1,6 @@
 test_*.png
 graph
+test_*.gif
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
