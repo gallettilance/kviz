@@ -116,7 +116,9 @@ class DenseGraph():
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
                     if l == 0:
-                        set_node_attributes(self._graph, {str(l) + str(n):{'label': str(act), 'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        set_node_attributes(self._graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        if int(act) == act:
+                            set_node_attributes(self._graph, {str(l) + str(n):{'label': str(act)}})
                     else:
                         set_node_attributes(self._graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(gcmap(norm(act))))}})
 
