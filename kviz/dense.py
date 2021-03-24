@@ -5,6 +5,8 @@ CopyRight goes here
 import json
 import imageio
 import pygraphviz
+import numpy as np
+from PIL import Image as im
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex, Normalize
 from networkx import DiGraph, set_node_attributes
@@ -70,7 +72,47 @@ class DenseGraph():
         out = to_agraph(self._graph)
         out.layout(prog='dot')
         out.draw(filename+'.png')
-        return imageio.imread(filename+'.png')
+        return np.asarray(im.open(filename+'.png'))
+
+
+    def _snap_input(self, i, input, filename):
+        fig, ax = plt.subplots()
+        ax.scatter(input[:,0], input[:,1], s=300, facecolors='none', edgecolors='#3498db')
+        ax.scatter(input[i,0], input[i,1], s=300, color='#3498db')
+        ax.spines['bottom'].set_color('#3498db')
+        ax.spines['left'].set_color('#3498db')
+        ax.tick_params(axis='x', colors='#3498db')
+        ax.tick_params(axis='y', colors='#3498db')
+        fig.savefig(filename+'_input.png', transparent=True)
+        return np.asarray(im.open(filename+'_input.png'))
+
+    
+    def _stack_gifs(self, imgs1, imgs2, filename, duration):
+        stacked_imgs = []
+        for i in range(len(imgs1)):
+            img1 = imgs1[i]
+            img2 = imgs2[i]
+            wpercent = img2.shape[0] / img2.shape[1]
+            proportional_height = int(img1.shape[1] * wpercent)
+            im1 = im.fromarray(img1)
+            im2 = im.fromarray(img2)
+            img2 = np.asarray(im2.resize((img1.shape[1], proportional_height)))
+
+            stacked = im.fromarray(np.vstack((np.asarray(img2), np.asarray(img1))))
+            stacked_imgs.append(stacked)
+
+        stacked_imgs[0].save(
+                filename+'_stacked.gif',
+                optimize=False,
+                save_all=True,
+                append_images=stacked_imgs[1:],
+                loop=0,
+                duration=duration*1000,
+                transparency=255,
+                disposal=2
+            )
+        
+        return
 
 
     def _reset(self):
@@ -87,7 +129,7 @@ class DenseGraph():
                     set_node_attributes(self._graph, {str(l+1) + str(h):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
 
 
-    def render(self, input=None, filename='graph', duration=.5):
+    def render(self, input=None, filename='graph', duration=1):
         """
         Render visualization of a Sequential Dense keras model.
         """
@@ -96,7 +138,9 @@ class DenseGraph():
             self._snap(filename)
             return
         
-        images = []
+        network_images = []
+        input_images = []
+
         norm = Normalize(vmin=-1, vmax=1.1)
         gcmap = plt.cm.Greens
         bcmap = plt.cm.Blues
@@ -107,8 +151,6 @@ class DenseGraph():
         predictions.append(self.model.predict(input))
 
         for i in range(len(input)):
-            images.append(self._snap(filename))
-
             for l in range(len(self.model.layers)):
                 layer = self.model.layers[l]
                 int_model = self._int_models[l]
@@ -123,18 +165,20 @@ class DenseGraph():
                         set_node_attributes(self._graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(gcmap(norm(act))))}})
 
                 if l == len(self.model.layers) - 1:
-                    images.append(self._snap(filename))
+                    network_images.append(self._snap(filename))
+                    input_images.append(self._snap_input(i, input, filename))
                     self._reset()
                     
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         act = predictions[l][i][h]
-                        set_node_attributes(self._graph, {str(l+1) + str(h):{'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        set_node_attributes(self._graph, {str(l+1) + str(h):{'label': str(int(round(act))), 'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
 
-                images.append(self._snap(filename))
+                network_images.append(self._snap(filename))
+                input_images.append(self._snap_input(i, input, filename))
                 self._reset()
             self._reset()
         
-        imageio.mimsave(filename+'.gif', images, duration=duration)
+        self._stack_gifs(network_images, input_images, filename, duration=duration)
         return
         
