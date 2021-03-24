@@ -56,7 +56,7 @@ def test_dense_input_xor():
     fig.savefig("test_model_xor.png")
 
     dg = DenseGraph(model)
-    dg.render(input=X, filename='test_input_xor')
+    dg.render(X, filename='test_input_xor')
 
 
 def test_dense_input_line():
@@ -146,4 +146,4 @@ def test_dense_input_line():
     fig.savefig("test_model_line.png")
 
     dg = DenseGraph(model)
-    dg.render(input=X, filename='test_input_line', duration=.3)
+    dg.render(X, filename='test_input_line', duration=.3)

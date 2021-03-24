@@ -68,20 +68,20 @@ class DenseGraph():
         
         Returns:
 
-            nx.DiGraph
+            networkx.DiGraph
 
         """
         return self._graph
 
     
-    def set_graph(self, graph=nx.DiGraph()):
+    def set_graph(self, graph=DiGraph()):
         """
             DiGraph is computed based on the model provided \
             you can set this attribute to a modified DiGraph \
             using this method
 
             Parameters:
-                graph : nx.Graph
+                graph : networkx.Graph
                     The graph to set
             
             Returns:
@@ -109,14 +109,33 @@ class DenseGraph():
             
             for n in range(0, layer.input_shape[1]):
                 if l == 0:
-                    graph.add_node(str(l) + str(n), shape='circle', color='#3498db', label='')
+                    graph.add_node(
+                        str(l) + str(n),
+                        shape='circle',
+                        color='#3498db',
+                        label=''
+                    )
                 else:
-                    graph.add_node(str(l) + str(n), shape='circle', color='#2ecc71', label='')
+                    graph.add_node(
+                        str(l) + str(n),
+                        shape='circle',
+                        color='#2ecc71',
+                        label=''
+                    )
     
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
-                        graph.add_node(str(l+1) + str(h), shape='circle', color='#3498db', label='')
-                    graph.add_edge(str(l) + str(n), str(l+1) + str(h), color='#B20000')
+                        graph.add_node(
+                            str(l+1) + str(h),
+                            shape='circle',
+                            color='#3498db',
+                            label=''
+                        )
+                    graph.add_edge(
+                        str(l) + str(n),
+                        str(l+1) + str(h),
+                        color='#B20000'
+                    )
         
         return graph
 
@@ -147,7 +166,7 @@ class DenseGraph():
         """
             Take snapshot image of the graph
         """
-        out = to_agraph(self.graph)
+        out = to_agraph(self._graph)
         out.layout(prog='dot')
         out.draw(filename+'.png')
         return np.asarray(im.open(filename+'.png'))
@@ -197,7 +216,7 @@ class DenseGraph():
                 save_all=True,
                 append_images=stacked_imgs[1:],
                 loop=0,
-                duration=duration
+                duration=duration,
                 transparency=255, # prevent PIL from making background black
                 disposal=2
             )
@@ -214,23 +233,41 @@ class DenseGraph():
             layer = self.model.layers[l]
             for n in range(0, layer.input_shape[1]):
                 if l == 0:
-                    set_node_attributes(self.graph, {str(l) + str(n):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
+                    set_node_attributes(self._graph, {
+                        str(l) + str(n): {
+                            'label': '',
+                            'fontcolor': '',
+                            'style': '',
+                            'color': '#3498db'
+                        }})
                 else:
-                    set_node_attributes(self.graph, {str(l) + str(n):{'label': '', 'fontcolor': '', 'style': '', 'color': '#2ecc71'}})
+                    set_node_attributes(self._graph, {
+                        str(l) + str(n): {
+                            'label': '',
+                            'fontcolor': '',
+                            'style': '',
+                            'color': '#2ecc71'
+                        }})
             
             for h in range(0, layer.output_shape[1]):
                 if l == len(self.model.layers) - 1:
-                    set_node_attributes(self.graph, {str(l+1) + str(h):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
+                    set_node_attributes(self._graph, {
+                        str(l+1) + str(h): {
+                            'label': '',
+                            'fontcolor': '',
+                            'style': '',
+                            'color': '#3498db'
+                        }})
 
 
-    def render(self, input=None, filename='graph', duration=1000):
+    def render(self, x=None, filename='graph', duration=1000):
         """
         Render visualization of a Sequential Dense keras model
 
-        If input is not specified 'render()' will output the network architecture
+        If x is not specified 'render()' will output the network architecture
 
         Parameters:
-            input : ndarray
+            x : ndarray
                 input to a Keras model
             filename : str
                 name of file to which visualization will be saved
@@ -241,7 +278,7 @@ class DenseGraph():
             None
         """
         
-        if input is None:
+        if x is None:
             self._snap(filename)
             return
         
@@ -252,12 +289,12 @@ class DenseGraph():
         gcmap = plt.cm.Greens
         bcmap = plt.cm.Blues
 
-        predictions = [input]
+        predictions = [x]
         for i in range(len(self._int_models)):
-            predictions.append(self._int_models[i].predict(input))
-        predictions.append(self.model.predict(input))
+            predictions.append(self._int_models[i].predict(x))
+        predictions.append(self.model.predict(x))
 
-        for i in range(len(input)):
+        for i in range(len(x)):
             for l in range(len(self.model.layers)):
                 layer = self.model.layers[l]
                 int_model = self._int_models[l]
@@ -265,24 +302,40 @@ class DenseGraph():
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
                     if l == 0:
-                        set_node_attributes(self.graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        set_node_attributes(self._graph, {
+                            str(l) + str(n): {
+                                'style': 'filled',
+                                'color': str(rgb2hex(bcmap(norm(act))))
+                            }})
                         if int(act) == act:
-                            set_node_attributes(self.graph, {str(l) + str(n):{'label': str(act)}})
+                            set_node_attributes(self._graph, {
+                                str(l) + str(n):{
+                                    'label': str(act)
+                                }})
                     else:
-                        set_node_attributes(self.graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(gcmap(norm(act))))}})
+                        set_node_attributes(self._graph, {
+                            str(l) + str(n): {
+                                'style': 'filled',
+                                'color': str(rgb2hex(gcmap(norm(act))))
+                            }})
 
                 if l == len(self.model.layers) - 1:
                     network_images.append(self._snap(filename))
-                    input_images.append(self._snap_input(i, input, filename))
+                    input_images.append(self._snap_input(i, x, filename))
                     self._reset()
                     
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         act = predictions[l][i][h]
-                        set_node_attributes(self.graph, {str(l+1) + str(h):{'label': str(int(round(act))), 'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        set_node_attributes(self._graph, {
+                            str(l+1) + str(h): {
+                                'label': str(int(round(act))),
+                                'style': 'filled',
+                                'color': str(rgb2hex(bcmap(norm(act))))
+                            }})
 
                 network_images.append(self._snap(filename))
-                input_images.append(self._snap_input(i, input, filename))
+                input_images.append(self._snap_input(i, x, filename))
                 self._reset()
             self._reset()
         
