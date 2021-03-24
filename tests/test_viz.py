@@ -15,6 +15,9 @@ def test_dense_no_input():
 
     dg = DenseGraph(model)
     dg.render(filename='test_no_input')
+    g1 = dg.get_graph()
+    dg.set_graph(g1)
+    g2 = dg.get_graph()
 
 
 def test_dense_input_xor():

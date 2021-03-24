@@ -1,6 +1,19 @@
 """
-CopyRight goes here
+Copyright 2021 Lance Galletti
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 """
+
 
 import json
 import imageio
@@ -15,7 +28,32 @@ import tensorflow.keras as keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Activation
 
+
 class DenseGraph():
+    """
+        Class for creating and rendering visualization of Keras
+        Sequential models with only dense layers
+
+        Attributes:
+            model : tf.keras.Model
+                a compiled keras sequential model with only dense layers
+        
+        Methods:
+            get_graph : returns nx.DiGraph
+                DiGraph is computed based on the model provided
+                you can access this attribute using this method
+            
+            set_graph : takes nx.DiGraph
+                DiGraph is computed based on the model provided
+                you can set this attribute to a modified DiGraph
+                using this method
+
+            render : 
+                Can print the network architecture or, if input
+                is provided, show a GIF of the activations of each
+                Neuron based on the input provided.
+
+    """
 
     def __init__(self, model):
         self.model = model
@@ -23,9 +61,41 @@ class DenseGraph():
         self._int_models = self._get_int_models()
 
 
+    def get_graph(self):
+        """
+            DiGraph is computed based on the model provided \
+            You can access this attribute using this method
+        
+        Returns:
+
+            nx.DiGraph
+
+        """
+        return self._graph
+
+    
+    def set_graph(self, graph=nx.DiGraph()):
+        """
+            DiGraph is computed based on the model provided \
+            you can set this attribute to a modified DiGraph \
+            using this method
+
+            Parameters:
+                graph : nx.Graph
+                    The graph to set
+            
+            Returns:
+                None
+        """
+        self._graph = graph
+        return
+
+
     def _make_digraph(self):
         """
         Constructs the DiGraph
+
+        TODO: colors, shapes etc could be specified by user
         """
 
         graph = DiGraph(bgcolor="transparent", nodesep='1', ranksep='1')
@@ -52,6 +122,11 @@ class DenseGraph():
 
 
     def _get_int_models(self):
+        """
+        Creates a list of models where each model consists of all the layers
+        (with matching weights and activations) in self.model up to a specified
+        layer depth. This is important to get each node activation.
+        """
         intermediate_models = []
 
         for l in range(len(self.model.layers)):
@@ -69,13 +144,23 @@ class DenseGraph():
 
 
     def _snap(self, filename):
-        out = to_agraph(self._graph)
+        """
+            Take snapshot image of the graph
+        """
+        out = to_agraph(self.graph)
         out.layout(prog='dot')
         out.draw(filename+'.png')
         return np.asarray(im.open(filename+'.png'))
 
 
     def _snap_input(self, i, input, filename):
+        """
+            Take snapshot image of the input
+
+            TODO:
+                1. this doesn't work for input in > 2 dimension
+                2. how to plot input could / should be specified by user
+        """
         fig, ax = plt.subplots()
         ax.scatter(input[:,0], input[:,1], s=300, facecolors='none', edgecolors='#3498db')
         ax.scatter(input[i,0], input[i,1], s=300, color='#3498db')
@@ -88,6 +173,11 @@ class DenseGraph():
 
     
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
+        """
+            Takes two lists of images and stacks each image in one list on top
+            of its corresponding image in the other. Then creates a GIF of the
+            list of stacked images.
+        """
         stacked_imgs = []
         for i in range(len(imgs1)):
             img1 = imgs1[i]
@@ -103,12 +193,12 @@ class DenseGraph():
 
         stacked_imgs[0].save(
                 filename+'_stacked.gif',
-                optimize=False,
+                optimize=False, # important for transparent background
                 save_all=True,
                 append_images=stacked_imgs[1:],
                 loop=0,
-                duration=duration*1000,
-                transparency=255,
+                duration=duration
+                transparency=255, # prevent PIL from making background black
                 disposal=2
             )
         
@@ -116,22 +206,39 @@ class DenseGraph():
 
 
     def _reset(self):
+        """
+            Resets the graph labels, colors, fonts
+        """
+
         for l in range(len(self.model.layers)):
             layer = self.model.layers[l]
             for n in range(0, layer.input_shape[1]):
                 if l == 0:
-                    set_node_attributes(self._graph, {str(l) + str(n):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
+                    set_node_attributes(self.graph, {str(l) + str(n):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
                 else:
-                    set_node_attributes(self._graph, {str(l) + str(n):{'label': '', 'fontcolor': '', 'style': '', 'color': '#2ecc71'}})
+                    set_node_attributes(self.graph, {str(l) + str(n):{'label': '', 'fontcolor': '', 'style': '', 'color': '#2ecc71'}})
             
             for h in range(0, layer.output_shape[1]):
                 if l == len(self.model.layers) - 1:
-                    set_node_attributes(self._graph, {str(l+1) + str(h):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
+                    set_node_attributes(self.graph, {str(l+1) + str(h):{'label': '', 'fontcolor': '', 'style': '', 'color': '#3498db'}})
 
 
-    def render(self, input=None, filename='graph', duration=1):
+    def render(self, input=None, filename='graph', duration=1000):
         """
-        Render visualization of a Sequential Dense keras model.
+        Render visualization of a Sequential Dense keras model
+
+        If input is not specified 'render()' will output the network architecture
+
+        Parameters:
+            input : ndarray
+                input to a Keras model
+            filename : str
+                name of file to which visualization will be saved
+            duration : int
+                duration in ms between images in GIF
+
+        Returns:
+            None
         """
         
         if input is None:
@@ -158,11 +265,11 @@ class DenseGraph():
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
                     if l == 0:
-                        set_node_attributes(self._graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        set_node_attributes(self.graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
                         if int(act) == act:
-                            set_node_attributes(self._graph, {str(l) + str(n):{'label': str(act)}})
+                            set_node_attributes(self.graph, {str(l) + str(n):{'label': str(act)}})
                     else:
-                        set_node_attributes(self._graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(gcmap(norm(act))))}})
+                        set_node_attributes(self.graph, {str(l) + str(n):{'style': 'filled', 'color': str(rgb2hex(gcmap(norm(act))))}})
 
                 if l == len(self.model.layers) - 1:
                     network_images.append(self._snap(filename))
@@ -172,7 +279,7 @@ class DenseGraph():
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         act = predictions[l][i][h]
-                        set_node_attributes(self._graph, {str(l+1) + str(h):{'label': str(int(round(act))), 'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
+                        set_node_attributes(self.graph, {str(l+1) + str(h):{'label': str(int(round(act))), 'style': 'filled', 'color': str(rgb2hex(bcmap(norm(act))))}})
 
                 network_images.append(self._snap(filename))
                 input_images.append(self._snap_input(i, input, filename))
