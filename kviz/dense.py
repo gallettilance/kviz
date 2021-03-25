@@ -203,8 +203,11 @@ class DenseGraph():
                              np.arange(y_min, y_max, h))
         meshData = np.c_[xx.ravel(), yy.ravel()]
 
-        fig, ax = plt.subplots()
-        ax.scatter(X[:, 0], X[:, 1], color="b", s=100, alpha=.9)
+        # TODO catch max number of classes
+        colors = np.array([x for x in 'bgrcmyk'])
+
+        fig, ax = plt.subplots(frameon=False)
+        ax.scatter(X[:, 0], X[:, 1], color=colors[Y].tolist(), s=100, alpha=.9)
         self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
         Z = self.model.predict(meshData)
         Z = np.array([int(round(z[0])) for z in Z]).reshape(xx.shape)
@@ -350,7 +353,10 @@ class DenseGraph():
         network_images = []
         input_images = []
 
-        norm = Normalize(vmin=-1, vmax=1.1)
+        # TODO find min / max node activation
+        vmin = min([X[:, 0].min(), X[:, 1].min()])
+        vmax = max([X[:, 0].max(), X[:, 1].max()])
+        norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
         gcmap = plt.cm.Greens
         bcmap = plt.cm.Blues
 
