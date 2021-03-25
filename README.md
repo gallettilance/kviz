@@ -112,7 +112,7 @@ You can visualize which nodes activate in the network as a function of a set of 
 Produces the following decision boundary (visualized using `matplotlib`):
 
 <p align="center">
-    <img src="examples/xor_model.png" width=50% height='auto'>
+    <img src="examples/xor_model.png">
 </p>
 
 And the following GIF:
@@ -147,7 +147,7 @@ The darker the node the higher the activation is at that node.
 Produces the following decision boundary (visualized using `matplotlib`):
 
 <p align="center">
-    <img src="examples/line_model.png" width=50% height='auto'>
+    <img src="examples/line_model.png">
 </p>
 
 And the following GIF:
