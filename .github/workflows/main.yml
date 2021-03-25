@@ -18,7 +18,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install graphviz
-      run: sudo apt-get install graphviz graphviz-devel
+      run: sudo apt-get install graphviz
     - name: Test with tox
       run: |
         pip install tox coveralls
