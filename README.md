@@ -1,7 +1,7 @@
 # Kviz
 
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![Build Status](https://travis-ci.com/gallettilance/kviz.svg?branch=master)](https://travis-ci.com/gallettilance/kviz)
+![kviz CI](https://github.com/gallettilance/kviz/workflows/kviz%20CI/badge.svg)
 
 Visualization library for Keras Neural Networks
 
