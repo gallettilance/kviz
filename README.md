@@ -45,7 +45,7 @@ Produces the following graph:
     history = model.fit(X, Y, batch_size=4, epochs=1000)
 
     dg = DenseGraph(model)
-    dg.render(input=X)
+    dg.render(X)
 ```
 
 Produces the following decision boundary (visualized using `matplotlib`):
@@ -80,7 +80,7 @@ The darker the node the higher the activation is at that node.
     history = model.fit(X, Y)
 
     dg = DenseGraph(model)
-    dg.render(input=X, duration=.3)
+    dg.render(X, duration=.3)
 ```
 
 Produces the following decision boundary (visualized using `matplotlib`):
