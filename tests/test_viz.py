@@ -146,4 +146,23 @@ def test_dense_input_line():
     fig.savefig("test_model_line.png")
 
     dg = DenseGraph(model)
-    dg.render(X, filename='test_input_line', duration=.3)
+    dg.render(X, filename='test_input_line', duration=300)
+
+
+def test_animate_learning():
+    ACTIVATION = "sigmoid"
+    model = keras.models.Sequential()
+    model.add(layers.Dense(2, input_dim=2, activation=ACTIVATION))
+    model.add(layers.Dense(1, activation=ACTIVATION))
+    model.compile(loss="binary_crossentropy")
+
+    X = np.array([
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1]])
+    Y = np.array([x[0] ^ x[1] for x in X])
+
+    dg = DenseGraph(model)
+    dg.animate_learning(X, Y, epochs=10000, snap_freq=50, filename='test_animate', duration=300)
+    dg.render(X, filename='test_animate')

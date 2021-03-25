@@ -170,23 +170,50 @@ class DenseGraph():
         return np.asarray(im.open(filename + '.png'))
 
 
-    def _snap_input(self, i, input, filename):
+    def _snap_X(self, i, X, filename):
         """
             Take snapshot image of the input
 
             TODO:
-                1. this doesn't work for input in > 2 dimension
+                1. this doesn't work for X in > 2 dimension
                 2. how to plot input could / should be specified by user
         """
         fig, ax = plt.subplots()
-        ax.scatter(input[:, 0], input[:, 1], s=300, facecolors='none', edgecolors='#3498db')
-        ax.scatter(input[i, 0], input[i, 1], s=300, color='#3498db')
+        ax.scatter(X[:, 0], X[:, 1], s=300, facecolors='none', edgecolors='#3498db')
+        ax.scatter(X[i, 0], X[i, 1], s=300, color='#3498db')
         ax.spines['bottom'].set_color('#3498db')
         ax.spines['left'].set_color('#3498db')
         ax.tick_params(axis='x', colors='#3498db')
         ax.tick_params(axis='y', colors='#3498db')
-        fig.savefig(filename + '_input.png', transparent=True)
-        return np.asarray(im.open(filename + '_input.png'))
+        fig.savefig(filename + '_X.png', transparent=True)
+        plt.close()
+        return np.asarray(im.open(filename + '_X.png'))
+
+
+    def _snap_learning(self, X, Y, snap_freq, filename):
+        """
+            Take snapshot of input with decision boundary
+        """
+
+        # create a mesh to plot in
+        h = .02  # step size in the mesh
+        x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+        y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                             np.arange(y_min, y_max, h))
+        meshData = np.c_[xx.ravel(), yy.ravel()]
+
+        fig, ax = plt.subplots()
+        ax.scatter(X[:, 0], X[:, 1], color="b", s=100, alpha=.9)
+        self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
+        Z = self.model.predict(meshData)
+        Z = np.array([int(round(z[0])) for z in Z]).reshape(xx.shape)
+        ax.contourf(xx, yy, Z, alpha=.5, cmap=plt.cm.Paired)
+        fig.savefig(filename + '.png', transparent=True)
+        plt.close()
+
+        return np.asarray(im.open(filename + '.png'))
+
 
 
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
@@ -257,14 +284,55 @@ class DenseGraph():
                         }})
 
 
-    def render(self, x=None, filename='graph', duration=1000):
+    def animate_learning(self, X, Y, epochs=100, snap_freq=10, filename='learn', duration=1000):
+        """
+            Make GIF from snapshots of decision boundary at given snap_freq
+
+            Parameters:
+
+                X : ndarray
+                    input to a Keras model
+                Y : ndarray
+                    classes to be learned
+                epochs : int
+                    number of training epochs
+                snap_freq : int
+                    number of epochs after which to take a snapshot
+                filename : str
+                    name of file to save as GIF
+                duration : int
+                    duration in ms between images in GIF
+
+            Returns:
+
+                The model after learning
+        """
+
+        images = []
+        for i in range(int(epochs / snap_freq)):
+            images.append(im.fromarray(self._snap_learning(X, Y, snap_freq, filename)))
+
+        images[0].save(
+            filename + '.gif',
+            optimize=False,  # important for transparent background
+            save_all=True,
+            append_images=images[1:],
+            loop=0,
+            duration=duration,
+            transparency=255,  # prevent PIL from making background black
+            disposal=2
+        )
+        return self.model
+
+
+    def render(self, X=None, filename='graph', duration=1000):
         """
         Render visualization of a Sequential Dense keras model
 
-        If x is not specified 'render()' will output the network architecture
+        If X is not specified 'render()' will output the network architecture
 
         Parameters:
-            x : ndarray
+            X : ndarray
                 input to a Keras model
             filename : str
                 name of file to which visualization will be saved
@@ -275,7 +343,7 @@ class DenseGraph():
             None
         """
 
-        if x is None:
+        if X is None:
             self._snap(filename)
             return
 
@@ -286,12 +354,12 @@ class DenseGraph():
         gcmap = plt.cm.Greens
         bcmap = plt.cm.Blues
 
-        predictions = [x]
+        predictions = [X]
         for i in range(len(self._int_models)):
-            predictions.append(self._int_models[i].predict(x))
-        predictions.append(self.model.predict(x))
+            predictions.append(self._int_models[i].predict(X))
+        predictions.append(self.model.predict(X))
 
-        for i in range(len(x)):
+        for i in range(len(X)):
             for l in range(len(self.model.layers)):
                 layer = self.model.layers[l]
 
@@ -317,7 +385,7 @@ class DenseGraph():
 
                 if l == len(self.model.layers) - 1:
                     network_images.append(self._snap(filename))
-                    input_images.append(self._snap_input(i, x, filename))
+                    input_images.append(self._snap_X(i, X, filename))
                     self._reset()
 
                 for h in range(0, layer.output_shape[1]):
@@ -331,7 +399,7 @@ class DenseGraph():
                             }})
 
                 network_images.append(self._snap(filename))
-                input_images.append(self._snap_input(i, x, filename))
+                input_images.append(self._snap_X(i, X, filename))
                 self._reset()
             self._reset()
 
