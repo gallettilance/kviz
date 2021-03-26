@@ -10,6 +10,20 @@ Visualization library for Keras Neural Networks
     pip3 install kviz
 ```
 
+## Requirements
+
+On Fedora
+
+```
+    sudo dnf install graphviz graphviz-devel
+```
+
+On Ubuntu
+
+```
+    sudo apt-get install graphviz graphviz-dev
+```
+
 ## Examples
 
 ### Architecture Visualization
