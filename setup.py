@@ -12,7 +12,7 @@ tests_require = [
 setup(
   name='kviz',
   packages=['kviz'],
-  version='0.0.1',
+  version='0.0.2',
   description='A Library for visualizing keras neural networks',
   install_requires=[
     'tf-nightly',
@@ -21,7 +21,7 @@ setup(
     'matplotlib',
     'imageio'
   ],
-  python_requires='>=3.7, <4',
+  python_requires='>=3.9, <4',
   setup_requires=['pytest-runner'],
   tests_require=tests_require,
   extras_require={
@@ -32,8 +32,6 @@ setup(
   license="Apache License 2.0",
   include_package_data=True,
   classifiers=[
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
   ],
 )

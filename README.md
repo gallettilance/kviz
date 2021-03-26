@@ -1,9 +1,14 @@
 # Kviz
 
+![PyPI](https://img.shields.io/pypi/v/kviz)
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 ![kviz CI](https://github.com/gallettilance/kviz/workflows/kviz%20CI/badge.svg)
 
 Visualization library for Keras Neural Networks
+
+```
+    pip3 install kviz
+```
 
 ## Examples
 
@@ -24,7 +29,7 @@ You can visualize the architecture of your keras model as such:
 Produces the following graph:
 
 <p align="center">
-    <img src="examples/base_model.png"/>
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/base_model.png?raw=true"/>
 </p>
 
 ### Learning Animation
@@ -49,7 +54,7 @@ You can visualize the learned decision boundary of your model as such:
 Which produces the following GIF:
 
 <p align="center">
-    <img src="examples/circle_relu_model.gif"/>
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/circle_relu_model.gif?raw=true"/>
 </p>
 
 We can try different activation functions, network architectures, etc. to see what works
@@ -61,7 +66,7 @@ try changing the number of neurons in the hidden layer to 3 or more (to learn hi
 dimensional features). This produces the following (for 4 hidden neurons):
 
 <p align="center">
-    <img src="examples/circle_relu_4d_model.gif"/>
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/circle_relu_4d_model.gif?raw=true"/>
 </p>
 
 Instead, we can try changing the activation in the hidden layer to a `custom_activation`
@@ -80,7 +85,7 @@ function that is non-linear and matches our intuition of what circles are:
 which produces:
 
 <p align="center">
-    <img src="examples/circle_square_model.gif"/>
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/circle_square_model.gif?raw=true"/>
 </p>
 
 
@@ -112,13 +117,13 @@ You can visualize which nodes activate in the network as a function of a set of 
 Produces the following decision boundary (visualized using `matplotlib`):
 
 <p align="center">
-    <img src="examples/xor_model.png">
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/xor_model.png?raw=true">
 </p>
 
 And the following GIF:
 
 <p align="center">
-    <img src="examples/xor_model.gif"/>
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/xor_model.gif?raw=true"/>
 </p>
 
 The darker the node the higher the activation is at that node.
@@ -147,13 +152,13 @@ The darker the node the higher the activation is at that node.
 Produces the following decision boundary (visualized using `matplotlib`):
 
 <p align="center">
-    <img src="examples/line_model.png">
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/line_model.png?raw=true">
 </p>
 
 And the following GIF:
 
 <p align="center">
-    <img src="examples/line_model.gif"/>
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/line_model.gif?raw=true"/>
 </p>
 
 At a glance you can see that the activations of the middle hidden node
