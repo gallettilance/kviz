@@ -181,6 +181,8 @@ and right-most hiddent nodes result in predictions of class 1.
 
 ## Release
 
+Bump the release version in the `setup.py` file, then run:
+
 ```
     make clean
     make build
