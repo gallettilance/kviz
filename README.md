@@ -178,3 +178,11 @@ And the following GIF:
 At a glance you can see that the activations of the middle hidden node
 results in predictions of class 0 while the activation of the left-most
 and right-most hiddent nodes result in predictions of class 1.
+
+## Release
+
+```
+    make clean
+    make build
+    make release
+```
