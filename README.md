@@ -111,7 +111,7 @@ You can visualize which nodes activate in the network as a function of a set of 
 
 ```python
     model = keras.models.Sequential()
-    model.add(layers.Dense(3, input_dim=2, activation='sigmoid'))
+    model.add(layers.Dense(2, input_dim=2, activation='sigmoid'))
     model.add(layers.Dense(1, activation='sigmoid'))
     model.compile(loss="binary_crossentropy")
 
