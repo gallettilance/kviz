@@ -396,7 +396,7 @@ class DenseGraph():
 
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
-                        act = predictions[l][i][h]
+                        act = predictions[l + 1][i][h]
                         set_node_attributes(self._graph, {
                             str(l + 1) + str(h): {
                                 'label': str(int(round(act))),
