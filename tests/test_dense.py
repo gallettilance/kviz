@@ -35,7 +35,7 @@ def test_dense_input_xor():
         [1, 1]])
     Y = np.array([x[0] ^ x[1] for x in X])
 
-    model.fit(X, Y, batch_size=4, epochs=1000)
+    model.fit(X, Y, batch_size=4, epochs=100)
 
     colors = np.array(['b', 'g'])
     fig, ax = plt.subplots()
@@ -71,7 +71,7 @@ def test_dense_input_line():
     X = np.array(t)
     Y = np.array([1 if x[0] - x[1] >= 0 else 0 for x in X])
 
-    model.fit(X, Y, batch_size=50, epochs=100)
+    model.fit(X, Y, batch_size=50, epochs=10)
 
     # see which nodes activate for a given class
     X0 = X[X[:, 0] - X[:, 1] <= 0]
