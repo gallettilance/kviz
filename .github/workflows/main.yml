@@ -9,7 +9,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.9.2]
+        python-version: [3.9.x]
 
     steps:
     - uses: actions/checkout@v1
