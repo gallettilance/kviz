@@ -18,11 +18,41 @@ Copyright 2021 Lance Galletti
 import numpy as np
 from PIL import Image as im
 import matplotlib.pyplot as plt
-from matplotlib.colors import rgb2hex, Normalize
+from matplotlib.colors import rgb2hex, Normalize, ListedColormap
 from networkx import DiGraph, set_node_attributes
 from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense
+import re
+
+
+def create_colormap(hex_color_string):
+    """
+
+        Parameters:
+            hex_color_string: str.
+                A string in format "#ffffff".
+
+        Returns: a matplotlib colormap
+
+    """
+    hex_color_string = hex_color_string.lstrip('#')
+    r, g, b = tuple(int(hex_color_string[i:i+2], 16) for i in (0, 2, 4))
+
+    left_r = max(0, r-51)
+    right_r = min(255, r+51)
+    left_g = max(0, g-51)
+    right_g = min(255, g+51)
+    left_b = max(0, b-51)
+    right_b = min(255, b+51)
+
+    N = 256
+    vals = np.ones((N, 4))
+    vals[:, 0] = np.linspace(left_r / right_r, 1, N)
+    vals[:, 1] = np.linspace(left_g / right_g, 1, N)
+    vals[:, 2] = np.linspace(left_b / right_b, 1, N)
+    newcmp = ListedColormap(vals)
+    return newcmp
 
 
 class DenseGraph():
@@ -51,7 +81,29 @@ class DenseGraph():
 
     """
 
-    def __init__(self, model):
+    def __init__(self, model, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
+                 edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle'):
+
+        if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', input_color) and \
+                re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', inner_color) and \
+                re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', output_color) and \
+                re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', edge_clr):
+            self.input_layer_node_color = input_color
+            self.inner_layer_node_color = inner_color
+            self.output_layer_node_color = output_color
+            self.edge_color = edge_clr
+            self.input_layer_node_shape = input_shape
+            self.inner_layer_node_shape = inner_shape
+            self.output_layer_node_shape = output_shape
+        else:
+            self.input_layer_node_color = '#3498db'
+            self.inner_layer_node_color = '#2ecc71'
+            self.output_layer_node_color = '#3498db'
+            self.edge_color = '#B20000'
+            self.input_layer_node_shape = 'circle'
+            self.inner_layer_node_shape = 'circle'
+            self.output_layer_node_shape = 'circle'
+
         self.model = model
         self._graph = self._make_digraph()
         self._int_models = self._get_int_models()
@@ -106,15 +158,15 @@ class DenseGraph():
                 if l == 0:
                     graph.add_node(
                         str(l) + str(n),
-                        shape='circle',
-                        color='#3498db',
+                        shape=self.input_layer_node_shape,
+                        color=self.input_layer_node_color,
                         label=''
                     )
                 else:
                     graph.add_node(
                         str(l) + str(n),
-                        shape='circle',
-                        color='#2ecc71',
+                        shape=self.inner_layer_node_shape,
+                        color=self.inner_layer_node_color,
                         label=''
                     )
 
@@ -122,14 +174,14 @@ class DenseGraph():
                     if l == len(self.model.layers) - 1:
                         graph.add_node(
                             str(l + 1) + str(h),
-                            shape='circle',
-                            color='#3498db',
+                            shape=self.output_layer_node_shape,
+                            color=self.output_layer_node_color,
                             label=''
                         )
                     graph.add_edge(
                         str(l) + str(n),
                         str(l + 1) + str(h),
-                        color='#B20000'
+                        color=self.edge_color
                     )
 
         return graph
@@ -179,12 +231,12 @@ class DenseGraph():
                 2. how to plot input could / should be specified by user
         """
         fig, ax = plt.subplots()
-        ax.scatter(X[:, 0], X[:, 1], s=300, facecolors='none', edgecolors='#3498db')
-        ax.scatter(X[i, 0], X[i, 1], s=300, color='#3498db')
-        ax.spines['bottom'].set_color('#3498db')
-        ax.spines['left'].set_color('#3498db')
-        ax.tick_params(axis='x', colors='#3498db')
-        ax.tick_params(axis='y', colors='#3498db')
+        ax.scatter(X[:, 0], X[:, 1], s=300, facecolors='none', edgecolors=self.input_layer_node_color)
+        ax.scatter(X[i, 0], X[i, 1], s=300, color=self.input_layer_node_color)
+        ax.spines['bottom'].set_color(self.input_layer_node_color)
+        ax.spines['left'].set_color(self.input_layer_node_color)
+        ax.tick_params(axis='x', colors=self.input_layer_node_color)
+        ax.tick_params(axis='y', colors=self.input_layer_node_color)
         fig.savefig(filename + '_X.png', transparent=True)
         plt.close()
         return np.asarray(im.open(filename + '_X.png'))
@@ -265,7 +317,7 @@ class DenseGraph():
                             'label': '',
                             'fontcolor': '',
                             'style': '',
-                            'color': '#3498db'
+                            'color': self.input_layer_node_color
                         }})
                 else:
                     set_node_attributes(self._graph, {
@@ -273,7 +325,7 @@ class DenseGraph():
                             'label': '',
                             'fontcolor': '',
                             'style': '',
-                            'color': '#2ecc71'
+                            'color': self.inner_layer_node_color
                         }})
 
             for h in range(0, layer.output_shape[1]):
@@ -283,7 +335,7 @@ class DenseGraph():
                             'label': '',
                             'fontcolor': '',
                             'style': '',
-                            'color': '#3498db'
+                            'color': self.output_layer_node_color
                         }})
 
 
@@ -357,8 +409,10 @@ class DenseGraph():
         vmin = min([X[:, 0].min(), X[:, 1].min()])
         vmax = max([X[:, 0].max(), X[:, 1].max()])
         norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
-        gcmap = plt.cm.Greens
-        bcmap = plt.cm.Blues
+        # gcmap = plt.cm.Greens
+        # bcmap = plt.cm.Blues
+        gcmap = create_colormap(self.inner_layer_node_color)
+        bcmap = create_colormap(self.input_layer_node_color)
 
         predictions = [X]
         for i in range(len(self._int_models)):
