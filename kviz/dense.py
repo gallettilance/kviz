@@ -26,12 +26,17 @@ from tensorflow.keras.layers import Dense
 import re
 
 
-def create_colormap(hex_color_string):
+def create_colormap(hex_color_string, N=25, step=51):
     """
 
         Parameters:
             hex_color_string: str.
                 A string in format "#ffffff".
+            N: int.
+                should be within [1, 256]. The bigger N is, the more color the colormap will contain.
+            step: int.
+                Controls the range of the color map; the bigger step is, the bigger the range.
+                A step that is either too big or too small might cause problems.
 
         Returns: a matplotlib colormap
 
@@ -39,14 +44,13 @@ def create_colormap(hex_color_string):
     hex_color_string = hex_color_string.lstrip('#')
     r, g, b = tuple(int(hex_color_string[i:i+2], 16) for i in (0, 2, 4))
 
-    left_r = max(0, r-51)
-    right_r = min(255, r+51)
-    left_g = max(0, g-51)
-    right_g = min(255, g+51)
-    left_b = max(0, b-51)
-    right_b = min(255, b+51)
+    left_r = max(0, r-step)
+    right_r = min(255, r+step)
+    left_g = max(0, g-step)
+    right_g = min(255, g+step)
+    left_b = max(0, b-step)
+    right_b = min(255, b+step)
 
-    N = 256
     vals = np.ones((N, 4))
     vals[:, 0] = np.linspace(left_r / right_r, 1, N)
     vals[:, 1] = np.linspace(left_g / right_g, 1, N)
@@ -83,7 +87,28 @@ class DenseGraph():
 
     def __init__(self, model, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
                  edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle'):
+        """
 
+            Parameters:
+                model: A keras model.
+                    Since our class is called DenseGraph(), the keras model should only contain dense layers.
+                input_color: str.
+                    The color of the input layer in hex form (e.g. "#FFFFFF").
+                inner_color: str.
+                    The color of the inner layer(s) in hex form.
+                output_color: str.
+                    The color of the output layer in hex form.
+                edge_clr: str.
+                    The color of the edge connecting nodes of different layer. In hex form.
+                input_shape: str.
+                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
+                    Otherwise the shape will be "box" for invalid input.
+                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
+                inner_shape: str.
+                    The shape of the nodes in the inner layer(s). Should be a valid shape.
+                output_shape:
+                    The shape of the nodes in the output layer. Should be a valid shape.
+        """
         if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', input_color) and \
                 re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', inner_color) and \
                 re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', output_color) and \
@@ -411,8 +436,9 @@ class DenseGraph():
         norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
         # gcmap = plt.cm.Greens
         # bcmap = plt.cm.Blues
-        gcmap = create_colormap(self.inner_layer_node_color)
-        bcmap = create_colormap(self.input_layer_node_color)
+        inner_cmap = create_colormap(self.inner_layer_node_color)
+        input_cmap = create_colormap(self.input_layer_node_color)
+        output_cmap = create_colormap(self.output_layer_node_color)
 
         predictions = [X]
         for i in range(len(self._int_models)):
@@ -429,7 +455,7 @@ class DenseGraph():
                         set_node_attributes(self._graph, {
                             str(l) + str(n): {
                                 'style': 'filled',
-                                'color': str(rgb2hex(bcmap(norm(act))))
+                                'color': str(rgb2hex(input_cmap(norm(act))))
                             }})
                         if int(act) == act:
                             set_node_attributes(self._graph, {
@@ -440,7 +466,7 @@ class DenseGraph():
                         set_node_attributes(self._graph, {
                             str(l) + str(n): {
                                 'style': 'filled',
-                                'color': str(rgb2hex(gcmap(norm(act))))
+                                'color': str(rgb2hex(inner_cmap(norm(act))))
                             }})
 
                 if l == len(self.model.layers) - 1:
@@ -455,7 +481,7 @@ class DenseGraph():
                             str(l + 1) + str(h): {
                                 'label': str(int(round(act))),
                                 'style': 'filled',
-                                'color': str(rgb2hex(bcmap(norm(act))))
+                                'color': str(rgb2hex(output_cmap(norm(act))))
                             }})
 
                 network_images.append(self._snap(filename))

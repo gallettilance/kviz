@@ -54,8 +54,8 @@ def test_dense_input_xor():
     ax.contourf(xx, yy, Z, alpha=.3, cmap=plt.cm.Paired)
     ax.axis('off')
     fig.savefig("test_model_xor.png")
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#FF8000', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='star', inner_shape='star', output_shape='star')
+    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
+                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
     dg.render(X, filename='test_input_xor')
 
 
@@ -97,8 +97,8 @@ def test_dense_input_line():
 
     fig.savefig("test_model_line.png")
 
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#FF8000', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='star', inner_shape='star', output_shape='star')
+    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
+                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
     dg.render(X, filename='test_input_line', duration=300)
 
 
@@ -117,6 +117,9 @@ def test_animate_learning():
     X = np.array(list(filter(lambda x: x[0]**2 + x[1]**2 < 1 or x[0]**2 + x[1]**2 > 1.5, t)))
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#FF8000', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='star', inner_shape='star', output_shape='star')
+    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
+                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
     dg.animate_learning(X, Y, filename='test_animate')
+
+test_dense_input_line()
+test_dense_input_xor()
