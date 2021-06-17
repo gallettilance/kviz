@@ -120,6 +120,3 @@ def test_animate_learning():
     dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
                     edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
     dg.animate_learning(X, Y, filename='test_animate')
-
-test_dense_input_line()
-test_dense_input_xor()
