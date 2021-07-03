@@ -44,12 +44,12 @@ def create_colormap(hex_color_string, N=25, step=51):
     hex_color_string = hex_color_string.lstrip('#')
     r, g, b = tuple(int(hex_color_string[i:i+2], 16) for i in (0, 2, 4))
 
-    left_r = max(0, r-step)
-    right_r = min(255, r+step)
-    left_g = max(0, g-step)
-    right_g = min(255, g+step)
-    left_b = max(0, b-step)
-    right_b = min(255, b+step)
+    left_r = max(0, r - step)
+    right_r = min(255, r + step)
+    left_g = max(0, g - step)
+    right_g = min(255, g + step)
+    left_b = max(0, b - step)
+    right_b = min(255, b + step)
 
     vals = np.ones((N, 4))
     vals[:, 0] = np.linspace(left_r / right_r, 1, N)
