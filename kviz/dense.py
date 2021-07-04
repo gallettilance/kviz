@@ -42,7 +42,7 @@ def create_colormap(hex_color_string, N=25, step=51):
 
     """
     hex_color_string = hex_color_string.lstrip('#')
-    r, g, b = tuple(int(hex_color_string[i:i+2], 16) for i in (0, 2, 4))
+    r, g, b = tuple(int(hex_color_string[i: i + 2], 16) for i in (0, 2, 4))
 
     left_r = max(0, r - step)
     right_r = min(255, r + step)
@@ -109,10 +109,9 @@ class DenseGraph():
                 output_shape:
                     The shape of the nodes in the output layer. Should be a valid shape.
         """
-        if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', input_color) and \
-                re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', inner_color) and \
-                re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', output_color) and \
-                re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', edge_clr):
+        expression = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
+        if re.search(expression, input_color) and re.search(expression, inner_color) and \
+                re.search(expression, output_color) and re.search(expression, edge_clr):
             self.input_layer_node_color = input_color
             self.inner_layer_node_color = inner_color
             self.output_layer_node_color = output_color
@@ -434,8 +433,7 @@ class DenseGraph():
         vmin = min([X[:, 0].min(), X[:, 1].min()])
         vmax = max([X[:, 0].max(), X[:, 1].max()])
         norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
-        # gcmap = plt.cm.Greens
-        # bcmap = plt.cm.Blues
+
         inner_cmap = create_colormap(self.inner_layer_node_color)
         input_cmap = create_colormap(self.input_layer_node_color)
         output_cmap = create_colormap(self.output_layer_node_color)
