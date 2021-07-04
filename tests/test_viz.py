@@ -53,7 +53,9 @@ def test_dense_input_xor():
     Z = Z.reshape(xx.shape)
     ax.contourf(xx, yy, Z, alpha=.3, cmap=plt.cm.Paired)
     ax.axis('off')
+
     fig.savefig("test_model_xor.png")
+
     dg = DenseGraph(model)
     dg.render(X, filename='test_input_xor')
 
