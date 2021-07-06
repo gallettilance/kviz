@@ -83,6 +83,10 @@ class DenseGraph():
                 is provided, show a GIF of the activations of each
                 Neuron based on the input provided.
 
+            animate_learning:
+                Make GIF from snapshots of decision boundary at
+                given snap_freq
+
     """
 
     def __init__(self, model, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
