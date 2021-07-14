@@ -18,45 +18,12 @@ Copyright 2021 Lance Galletti
 import numpy as np
 from PIL import Image as im
 import matplotlib.pyplot as plt
-from matplotlib.colors import rgb2hex, Normalize, ListedColormap
+from matplotlib.colors import rgb2hex, Normalize
 from networkx import DiGraph, set_node_attributes
 from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense
-import re
-
-
-def create_colormap(hex_color_string, N=25, step=51):
-    """
-
-        Parameters:
-            hex_color_string: str.
-                A string in format "#ffffff".
-            N: int.
-                should be within [1, 256]. The bigger N is, the more color the colormap will contain.
-            step: int.
-                Controls the range of the color map; the bigger step is, the bigger the range.
-                A step that is either too big or too small might cause problems.
-
-        Returns: a matplotlib colormap
-
-    """
-    hex_color_string = hex_color_string.lstrip('#')
-    r, g, b = tuple(int(hex_color_string[i: i + 2], 16) for i in (0, 2, 4))
-
-    left_r = max(0, r - step)
-    right_r = min(255, r + step)
-    left_g = max(0, g - step)
-    right_g = min(255, g + step)
-    left_b = max(0, b - step)
-    right_b = min(255, b + step)
-
-    vals = np.ones((N, 4))
-    vals[:, 0] = np.linspace(left_r / right_r, 1, N)
-    vals[:, 1] = np.linspace(left_g / right_g, 1, N)
-    vals[:, 2] = np.linspace(left_b / right_b, 1, N)
-    newcmp = ListedColormap(vals)
-    return newcmp
+from kviz.helper_functions import create_colormap, check_regular_exp
 
 
 class DenseGraph():
@@ -73,10 +40,18 @@ class DenseGraph():
                 DiGraph is computed based on the model provided
                 you can access this attribute using this method
 
+            set_silence:
+                Allows users to set self.silence out of the constructor.
+
             set_graph : takes nx.DiGraph
                 DiGraph is computed based on the model provided
                 you can set this attribute to a modified DiGraph
                 using this method
+
+            customize_graph:
+                Changes the colors and shapes of the graph.
+                It can be called after a DenseGraph instance is created
+                and before render().
 
             render :
                 Can print the network architecture or, if input
@@ -86,7 +61,8 @@ class DenseGraph():
     """
 
     def __init__(self, model, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
-                 edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle'):
+                 edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle',
+                 silence=True):
         """
 
             Parameters:
@@ -102,16 +78,52 @@ class DenseGraph():
                     The color of the edge connecting nodes of different layer. In hex form.
                 input_shape: str.
                     The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
-                    Otherwise the shape will be "box" for invalid input.
                     Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
+                    Note that now only polygon-based shapes are supported.
                 inner_shape: str.
                     The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_shape:
+                output_shape: str.
+                    The shape of the nodes in the output layer. Should be a valid shape.
+                silence: bool.
+                    Default is True. By default, the model will be created even if some inputs are wrong; it will use
+                    default parameters instead.
+                    If set to False, an exception will raise when at least one input is incorrect.
+
+        """
+        self.silence = silence
+        self._set_colors_shapes(input_color, inner_color, output_color,
+                                edge_clr, input_shape, inner_shape, output_shape)
+
+        self.model = model
+        self._graph = self._make_digraph()
+        self._int_models = self._get_int_models()
+
+
+    def _set_colors_shapes(self, input_color, inner_color, output_color,
+                           edge_clr, input_shape, inner_shape, output_shape):
+        """
+        A helper method that sets the colors and shapes of the graph.
+
+        Parameters:
+            input_color: str.
+                    The color of the input layer in hex form (e.g. "#FFFFFF").
+                inner_color: str.
+                    The color of the inner layer(s) in hex form.
+                output_color: str.
+                    The color of the output layer in hex form.
+                edge_clr: str.
+                    The color of the edge connecting nodes of different layer. In hex form.
+                input_shape: str.
+                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
+                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
+                    Note that now only polygon-based shapes are supported.
+                inner_shape: str.
+                    The shape of the nodes in the inner layer(s). Should be a valid shape.
+                output_shape: str.
                     The shape of the nodes in the output layer. Should be a valid shape.
         """
-        expression = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-        if re.search(expression, input_color) and re.search(expression, inner_color) and \
-                re.search(expression, output_color) and re.search(expression, edge_clr):
+        if check_regular_exp(input_color, inner_color, output_color,
+                             edge_clr, input_shape, inner_shape, output_shape, self.silence):
             self.input_layer_node_color = input_color
             self.inner_layer_node_color = inner_color
             self.output_layer_node_color = output_color
@@ -128,9 +140,19 @@ class DenseGraph():
             self.inner_layer_node_shape = 'circle'
             self.output_layer_node_shape = 'circle'
 
-        self.model = model
-        self._graph = self._make_digraph()
-        self._int_models = self._get_int_models()
+
+    def set_silence(self, b):
+        """
+        Allows users to set self.silence out of the constructor.
+
+        Parameters:
+            b: bool.
+                The new value for self.silence.
+
+        Returns:
+            None
+        """
+        self.silence = b
 
 
     def get_graph(self):
@@ -166,8 +188,6 @@ class DenseGraph():
     def _make_digraph(self):
         """
         Constructs the DiGraph
-
-        TODO: colors, shapes etc could be specified by user
         """
 
         graph = DiGraph(bgcolor="transparent", nodesep='1', ranksep='1')
@@ -209,6 +229,43 @@ class DenseGraph():
                     )
 
         return graph
+
+
+    def customize_graph(self, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
+                        edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle'):
+        """
+        Changes the colors and shapes of the graph. It can be called after a DenseGraph instance is created and before
+        render().
+        It takes advantages of the existing methods _set_graph() and _make_digraph().
+
+        Parameters:
+            input_color: str.
+                    The color of the input layer in hex form (e.g. "#FFFFFF").
+                inner_color: str.
+                    The color of the inner layer(s) in hex form.
+                output_color: str.
+                    The color of the output layer in hex form.
+                edge_clr: str.
+                    The color of the edge connecting nodes of different layer. In hex form.
+                input_shape: str.
+                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
+                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
+                    Note that now only polygon-based shapes are supported.
+                inner_shape: str.
+                    The shape of the nodes in the inner layer(s). Should be a valid shape.
+                output_shape: str.
+                    The shape of the nodes in the output layer. Should be a valid shape.
+                silence: bool.
+                    Default is False. By default, the model will be created even if some inputs are wrong; it will use
+                    default parameters instead.
+                    If set to True, an exception will raise when at least one input is incorrect.
+
+        Returns:
+            None
+        """
+        self._set_colors_shapes(input_color, inner_color, output_color,
+                                edge_clr, input_shape, inner_shape, output_shape)
+        self.set_graph(self._make_digraph())
 
 
     def _get_int_models(self):

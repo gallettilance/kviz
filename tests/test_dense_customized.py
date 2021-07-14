@@ -42,8 +42,9 @@ def test_dense_input_xor_customized():
     ax.contourf(xx, yy, Z, alpha=.3, cmap=plt.cm.Paired)
     ax.axis('off')
     fig.savefig("test_model_xor_customized.png")
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
+    dg = DenseGraph(model)
+    dg.customize_graph(input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
+                       edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
     dg.render(X, filename='test_input_xor_customized')
 
 
