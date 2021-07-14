@@ -3,8 +3,10 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import sklearn.datasets as datasets
+from networkx import set_node_attributes, set_edge_attributes
 
 from kviz.dense import DenseGraph
+from kviz.helper_functions import get_random_color, get_random_shape
 
 # for testing dense models with different colors and shapes. Most of the codes are from test_viz.py.
 
@@ -12,7 +14,7 @@ from kviz.dense import DenseGraph
 def test_dense_input_xor_customized():
     ACTIVATION = "sigmoid"
     model = keras.models.Sequential()
-    model.add(layers.Dense(3, input_dim=2, activation=ACTIVATION))
+    model.add(layers.Dense(2, input_dim=2, activation=ACTIVATION))
     model.add(layers.Dense(1, activation=ACTIVATION))
     model.compile(loss="binary_crossentropy")
 
@@ -42,8 +44,40 @@ def test_dense_input_xor_customized():
     ax.contourf(xx, yy, Z, alpha=.3, cmap=plt.cm.Paired)
     ax.axis('off')
     fig.savefig("test_model_xor_customized.png")
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
+    dg = DenseGraph(model)
+
+    the_graph = dg.get_graph()
+    for l in range(len(model.layers)):
+        layer = model.layers[l]
+
+        for n in range(0, layer.input_shape[1]):
+            set_node_attributes(the_graph, {
+                str(l) + str(n): {
+                    'shape': "diamond",
+                    'color': "#00ff00",
+                    'label': ""
+                }
+            })
+
+            for h in range(0, layer.output_shape[1]):
+                if l == len(model.layers) - 1:
+                    set_node_attributes(the_graph, {
+                        str(l + 1) + str(h): {
+                            'shape': "square",
+                            'color': "#ff0000",
+                            'label': ""
+                        }
+                    })
+                set_edge_attributes(the_graph, {
+                    (str(l) + str(n), str(l + 1) + str(h)): {
+                        'color': "#0000ff"
+                    }
+                })
+
+    dg.set_graph(the_graph)
+    dg.set_x_color("#FF0000")
+    dg.set_x_marker("^")
+
     dg.render(X, filename='test_input_xor_customized')
 
 
@@ -85,26 +119,36 @@ def test_dense_input_line_customized():
 
     fig.savefig("test_model_line_customized.png")
 
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
+    dg = DenseGraph(model)
+    # test: each node is different
+    the_graph = dg.get_graph()
+    for l in range(len(model.layers)):
+        layer = model.layers[l]
+
+        for n in range(0, layer.input_shape[1]):
+            set_node_attributes(the_graph, {
+                str(l) + str(n): {
+                    'shape': get_random_shape(),
+                    'color': get_random_color(),
+                    'label': ""
+                }
+            })
+
+            for h in range(0, layer.output_shape[1]):
+                if l == len(model.layers) - 1:
+                    set_node_attributes(the_graph, {
+                        str(l + 1) + str(h): {
+                            'shape': get_random_shape(),
+                            'color': get_random_color(),
+                            'label': ""
+                        }
+                    })
+                set_edge_attributes(the_graph, {
+                    (str(l) + str(n), str(l + 1) + str(h)): {
+                        'color': get_random_color()
+                    }
+                })
+
+    dg.set_graph(the_graph)
+
     dg.render(X, filename='test_input_line_customized', duration=300)
-
-
-def test_animate_learning_customized():
-    ACTIVATION = "sigmoid"
-
-    def custom_activation(x):
-        return x**2
-
-    model = keras.models.Sequential()
-    model.add(layers.Dense(3, input_dim=2, activation=custom_activation))
-    model.add(layers.Dense(1, activation=ACTIVATION))
-    model.compile(loss="binary_crossentropy")
-
-    t, _ = datasets.make_blobs(n_samples=100, centers=[[0, 0]], cluster_std=1, random_state=2)
-    X = np.array(list(filter(lambda x: x[0]**2 + x[1]**2 < 1 or x[0]**2 + x[1]**2 > 1.5, t)))
-    Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
-
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
-    dg.animate_learning(X, Y, filename='test_animate_customized')
