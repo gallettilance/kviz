@@ -152,6 +152,3 @@ def test_animate_learning_customized():
                     edge_clr='#0000FF', input_node_shape='circle', inner_node_shape='diamond',
                     output_node_shape='polygon')
     dg.animate_learning(X, Y, filename='test_animate_customized')
-
-test_dense_input_xor_customized()
-test_dense_input_line_customized()
