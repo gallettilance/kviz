@@ -1,18 +1,28 @@
 from matplotlib.colors import ListedColormap
 import numpy as np
 import re
-import logging
+import random
 
 
 # According to https://graphviz.org/doc/info/shapes.html.
 # There are three main types of shapes : polygon-based, record-based and user-defined.
 # For now, this list only supports some polygon-based shapes.
-valid_networkx_shapes = [
+valid_graphviz_shapes = [
     "box", "polygon", "ellipse", "oval", "circle", "egg", "triangle", "diamond", "trapezium",
     "parallelogram", "house", "pentagon", "hexagon", "septagon", "octagon", "doublecircle", "doubleoctagon",
     "tripleoctagon", "invtriangle", "invtrapezium", "invhouse", "Mdiamond", "Msquare", "Mcircle", "rect", "rectangle",
     "square", "star", "cylinder",
 ]
+
+chars = '0123456789ABCDEF'
+
+default_node_shape = "circle"
+default_edge_color = "#B20000"
+default_input_node_color = "#3498db"
+default_inner_node_color = "#2ecc71"
+default_output_node_color = "#3498db"
+default_X_color = "#3498db"
+default_X_marker = "o"
 
 
 def create_colormap(hex_color_string, N=25, step=51):
@@ -44,52 +54,78 @@ def create_colormap(hex_color_string, N=25, step=51):
     vals[:, 0] = np.linspace(left_r / right_r, 1, N)
     vals[:, 1] = np.linspace(left_g / right_g, 1, N)
     vals[:, 2] = np.linspace(left_b / right_b, 1, N)
-    newcmp = ListedColormap(vals)
-    return newcmp
+    return ListedColormap(vals)
 
 
-def check_regular_exp(input_color, inner_color, output_color,
-                      edge_clr, input_shape, inner_shape, output_shape, silence):
+def get_or_create_colormap_with_dict(color, dictionary):
     """
-        The function to check whether the inputs are valid.
+        Use the color as the key, return the colormap from the dictionary.
+        If the color does not exist in the dictionary, it will be added and a corresponding colormap
+        will be created.
 
         Parameters:
-            input_color: str.
-                The color of the input layer in hex form (e.g. "#FFFFFF").
-            inner_color: str.
-                The color of the inner layer(s) in hex form.
-            output_color: str.
-                The color of the output layer in hex form.
-            edge_clr: str.
-                The color of the edge connecting nodes of different layer. In hex form.
-            input_shape: str.
-                The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
-                Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
-                Note that now only polygon-based shapes are supported.
-            inner_shape: str.
-                The shape of the nodes in the inner layer(s). Should be a valid shape.
-            output_shape: str.
-                The shape of the nodes in the output layer. Should be a valid shape.
-            silence: bool.
-                Default is True. If set to False, an exception will raise if at least one input does not meet the
-                regular expression.
+            color: str.
+                Should be a hex color string.
+            dictionary: dict.
+                The dictionary which uses hex color as the key and colormap as the value.
 
-        Returns: bool.
-            True if all inputs are valid.
+        Returns: matplotlib.colors.ListedColormap.
 
     """
-    expression = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-    if re.search(expression, input_color) and re.search(expression, inner_color) and \
-            re.search(expression, output_color) and re.search(expression, edge_clr) and \
-            inner_shape in valid_networkx_shapes and input_shape in valid_networkx_shapes and \
-            output_shape in valid_networkx_shapes:
-        return True
+    if color in dictionary:
+        the_color_map = dictionary[color]
     else:
-        if silence:
-            logging.warning("At least one of the inputs regarding colors&shapes is invalid."
-                            "\nsilence=True.\nUse default settings instead.")
-            return False
-        else:
-            logging.warning("At least one of the inputs regarding colors&shapes is invalid."
-                            "\nsilence=False.\nRaise an error.")
-            raise ValueError
+        the_color_map = create_colormap(color)
+        dictionary[color] = the_color_map
+    return the_color_map
+
+
+def check_regular_expression_for_color(color):
+    """
+        Check if the color string is a valid hex form (e.g. "#FFFFFF").
+        True if the string is valid; False otherwise.
+
+        Parameters:
+            color: str.
+                The color string to check.
+
+        Returns: bool.
+
+    """
+    return re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', color)
+
+
+def check_valid_networkx_shape(shape):
+    """
+        Check if the shape string is a valid for networkx. (e.g. "polygon").
+        Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
+        For now, most polygon-based shapes are supported.
+
+        Parameters:
+            shape: str.
+                The shape.
+
+        Returns: bool.
+
+    """
+    return shape in valid_graphviz_shapes
+
+
+def get_random_shape():
+    """
+        Randomly returns a shape.
+
+        Returns: str.
+
+    """
+    return random.choice(valid_graphviz_shapes)
+
+
+def get_random_color():
+    """
+        Randomly returns a hex color string.
+
+        Returns: str.
+
+    """
+    return "#" + "".join([random.choice(chars) for _ in range(6)])

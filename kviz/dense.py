@@ -23,7 +23,12 @@ from networkx import DiGraph, set_node_attributes
 from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense
-from kviz.helper_functions import create_colormap, check_regular_exp
+from kviz.helper_functions import (
+    get_or_create_colormap_with_dict, check_regular_expression_for_color, check_valid_networkx_shape,
+    default_node_shape, default_inner_node_color, default_edge_color, default_input_node_color,
+    default_output_node_color, default_X_color, default_X_marker
+)
+import logging
 
 
 class DenseGraph():
@@ -40,13 +45,16 @@ class DenseGraph():
                 DiGraph is computed based on the model provided
                 you can access this attribute using this method
 
-            set_silence:
-                Allows users to set self.silence out of the constructor.
-
             set_graph : takes nx.DiGraph
                 DiGraph is computed based on the model provided
                 you can set this attribute to a modified DiGraph
                 using this method
+
+            set_x_color :
+                Set the color of the points in the pyplot graph.
+
+            set_x_marker :
+                Set the marker of the points in the pyplot graph.
 
             customize_graph:
                 Changes the colors and shapes of the graph.
@@ -60,99 +68,127 @@ class DenseGraph():
 
     """
 
-    def __init__(self, model, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
-                 edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle',
-                 silence=True):
+    def __init__(self, model, input_node_color=default_input_node_color, inner_node_color=default_inner_node_color,
+                 output_node_color=default_output_node_color, edge_clr=default_edge_color,
+                 input_node_shape=default_node_shape, inner_node_shape=default_node_shape,
+                 output_node_shape=default_node_shape):
         """
 
             Parameters:
                 model: A keras model.
                     Since our class is called DenseGraph(), the keras model should only contain dense layers.
-                input_color: str.
+                input_node_color: str.
                     The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_color: str.
+                inner_node_color: str.
                     The color of the inner layer(s) in hex form.
-                output_color: str.
+                output_node_color: str.
                     The color of the output layer in hex form.
                 edge_clr: str.
                     The color of the edge connecting nodes of different layer. In hex form.
-                input_shape: str.
+                input_node_shape: str.
                     The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
                     Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
                     Note that now only polygon-based shapes are supported.
-                inner_shape: str.
+                inner_node_shape: str.
                     The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_shape: str.
+                output_node_shape: str.
                     The shape of the nodes in the output layer. Should be a valid shape.
-                silence: bool.
-                    Default is True. By default, the model will be created even if some inputs are wrong; it will use
-                    default parameters instead.
-                    If set to False, an exception will raise when at least one input is incorrect.
 
         """
-        self.silence = silence
-        self._set_colors_shapes(input_color, inner_color, output_color,
-                                edge_clr, input_shape, inner_shape, output_shape)
+        self._set_colors_shapes(input_node_color, inner_node_color, output_node_color,
+                                edge_clr, input_node_shape, inner_node_shape, output_node_shape)
+
+        # the color&shape for _snap_X()
+        self.x_color = default_X_color
+        self.x_marker = default_X_marker
 
         self.model = model
         self._graph = self._make_digraph()
+        self._graph_original_copy = self._graph.copy()
         self._int_models = self._get_int_models()
 
-
-    def _set_colors_shapes(self, input_color, inner_color, output_color,
-                           edge_clr, input_shape, inner_shape, output_shape):
+    def set_x_color(self, color):
         """
-        A helper method that sets the colors and shapes of the graph.
+            Set the color for points in the pyplot graph.
 
-        Parameters:
-            input_color: str.
+            Parameter:
+                color: str.
+                    Should be a valid hex color string.
+
+            Returns: None.
+
+        """
+        if check_regular_expression_for_color(color):
+            self.x_color = color
+        else:
+            logging.warning("Invalid value for x color. Default value is used")
+
+    def set_x_marker(self, marker):
+        """
+            Set the marker for points in the pyplot graph.
+
+            Parameter:
+                marker: str.
+                    The marker (e.g., 'o').
+                    Check https://matplotlib.org/stable/api/markers_api.html#module-matplotlib.markers
+                    for valid markers.
+
+            Returns: None.
+
+        """
+        self.x_marker = marker
+
+    def _set_colors_shapes(self, input_node_color, inner_node_color, output_node_color,
+                           edge_clr, input_node_shape, inner_node_shape, output_node_shape):
+        """
+            A helper method that sets the colors and shapes of the graph.
+
+            Parameters:
+                input_node_color: str.
                     The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_color: str.
+                inner_node_color: str.
                     The color of the inner layer(s) in hex form.
-                output_color: str.
+                output_node_color: str.
                     The color of the output layer in hex form.
                 edge_clr: str.
                     The color of the edge connecting nodes of different layer. In hex form.
-                input_shape: str.
+                input_node_shape: str.
                     The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
                     Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
                     Note that now only polygon-based shapes are supported.
-                inner_shape: str.
+                inner_node_shape: str.
                     The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_shape: str.
+                output_node_shape: str.
                     The shape of the nodes in the output layer. Should be a valid shape.
         """
-        if check_regular_exp(input_color, inner_color, output_color,
-                             edge_clr, input_shape, inner_shape, output_shape, self.silence):
-            self.input_layer_node_color = input_color
-            self.inner_layer_node_color = inner_color
-            self.output_layer_node_color = output_color
-            self.edge_color = edge_clr
-            self.input_layer_node_shape = input_shape
-            self.inner_layer_node_shape = inner_shape
-            self.output_layer_node_shape = output_shape
-        else:
-            self.input_layer_node_color = '#3498db'
-            self.inner_layer_node_color = '#2ecc71'
-            self.output_layer_node_color = '#3498db'
-            self.edge_color = '#B20000'
-            self.input_layer_node_shape = 'circle'
-            self.inner_layer_node_shape = 'circle'
-            self.output_layer_node_shape = 'circle'
+        self.input_layer_node_color = input_node_color if check_regular_expression_for_color(input_node_color)\
+            else default_input_node_color
+        self.inner_layer_node_color = inner_node_color if check_regular_expression_for_color(inner_node_color)\
+            else default_inner_node_color
+        self.output_layer_node_color = output_node_color if check_regular_expression_for_color(output_node_color)\
+            else default_output_node_color
+        self.edge_color = edge_clr if check_regular_expression_for_color(edge_clr) else default_edge_color
+        self.input_layer_node_shape = input_node_shape if check_valid_networkx_shape(input_node_shape)\
+            else default_node_shape
+        self.inner_layer_node_shape = inner_node_shape if check_valid_networkx_shape(inner_node_shape)\
+            else default_node_shape
+        self.output_layer_node_shape = output_node_shape if check_valid_networkx_shape(output_node_shape)\
+            else default_node_shape
 
-
-    def set_silence(self, b):
-        """
-        Allows users to set self.silence out of the constructor.
-
-        Parameters:
-            b: bool.
-                The new value for self.silence.
-
-        Returns:
-            None
-        """
-        self.silence = b
+        if self.input_layer_node_color != input_node_color:
+            logging.warning("Invalid value for input node color. Default value is used.")
+        if self.inner_layer_node_color != inner_node_color:
+            logging.warning("Invalid value for inner node color. Default value is used.")
+        if self.output_layer_node_color != output_node_color:
+            logging.warning("Invalid value for output node color. Default value is used.")
+        if self.edge_color != edge_clr:
+            logging.warning("Invalid value for edge color. Default value is used.")
+        if self.input_layer_node_shape != input_node_shape:
+            logging.warning("Invalid value for input node shape. Default value is used.")
+        if self.inner_layer_node_shape != inner_node_shape:
+            logging.warning("Invalid value for inner node shape. Default value is used.")
+        if self.output_layer_node_shape != output_node_shape:
+            logging.warning("Invalid value for output node shape. Default value is used.")
 
 
     def get_graph(self):
@@ -182,6 +218,7 @@ class DenseGraph():
                 None
         """
         self._graph = graph
+        self._graph_original_copy = self._graph.copy()
         return
 
 
@@ -231,40 +268,38 @@ class DenseGraph():
         return graph
 
 
-    def customize_graph(self, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
-                        edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle'):
+    def customize_graph(self, input_node_color=default_input_node_color, inner_node_color=default_inner_node_color,
+                        output_node_color=default_output_node_color, edge_clr=default_edge_color,
+                        input_node_shape=default_node_shape, inner_node_shape=default_node_shape,
+                        output_node_shape=default_node_shape):
         """
-        Changes the colors and shapes of the graph. It can be called after a DenseGraph instance is created and before
-        render().
-        It takes advantages of the existing methods _set_graph() and _make_digraph().
+            Changes the colors and shapes of the graph. It can be called after a DenseGraph instance is created and before
+            render().
+            It takes advantages of the existing methods _set_graph() and _make_digraph().
 
-        Parameters:
-            input_color: str.
+            Parameters:
+                input_node_color: str.
                     The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_color: str.
+                inner_node_color: str.
                     The color of the inner layer(s) in hex form.
-                output_color: str.
+                output_node_color: str.
                     The color of the output layer in hex form.
                 edge_clr: str.
                     The color of the edge connecting nodes of different layer. In hex form.
-                input_shape: str.
+                input_node_shape: str.
                     The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
                     Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
                     Note that now only polygon-based shapes are supported.
-                inner_shape: str.
+                inner_node_shape: str.
                     The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_shape: str.
+                output_node_shape: str.
                     The shape of the nodes in the output layer. Should be a valid shape.
-                silence: bool.
-                    Default is False. By default, the model will be created even if some inputs are wrong; it will use
-                    default parameters instead.
-                    If set to True, an exception will raise when at least one input is incorrect.
 
         Returns:
             None
         """
-        self._set_colors_shapes(input_color, inner_color, output_color,
-                                edge_clr, input_shape, inner_shape, output_shape)
+        self._set_colors_shapes(input_node_color, inner_node_color, output_node_color,
+                                edge_clr, input_node_shape, inner_node_shape, output_node_shape)
         self.set_graph(self._make_digraph())
 
 
@@ -312,12 +347,12 @@ class DenseGraph():
                 2. how to plot input could / should be specified by user
         """
         fig, ax = plt.subplots()
-        ax.scatter(X[:, 0], X[:, 1], s=300, facecolors='none', edgecolors=self.input_layer_node_color)
-        ax.scatter(X[i, 0], X[i, 1], s=300, color=self.input_layer_node_color)
-        ax.spines['bottom'].set_color(self.input_layer_node_color)
-        ax.spines['left'].set_color(self.input_layer_node_color)
-        ax.tick_params(axis='x', colors=self.input_layer_node_color)
-        ax.tick_params(axis='y', colors=self.input_layer_node_color)
+        ax.scatter(X[:, 0], X[:, 1], s=300, marker=self.x_marker, facecolors='none', edgecolors=self.x_color)
+        ax.scatter(X[i, 0], X[i, 1], s=300, marker=self.x_marker, color=self.x_color)
+        ax.spines['bottom'].set_color(self.x_color)
+        ax.spines['left'].set_color(self.x_color)
+        ax.tick_params(axis='x', colors=self.x_color)
+        ax.tick_params(axis='y', colors=self.x_color)
         fig.savefig(filename + '_X.png', transparent=True)
         plt.close()
         return np.asarray(im.open(filename + '_X.png'))
@@ -349,7 +384,6 @@ class DenseGraph():
         plt.close()
 
         return np.asarray(im.open(filename + '.png'))
-
 
 
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
@@ -388,36 +422,7 @@ class DenseGraph():
         """
             Resets the graph labels, colors, fonts
         """
-
-        for l in range(len(self.model.layers)):
-            layer = self.model.layers[l]
-            for n in range(0, layer.input_shape[1]):
-                if l == 0:
-                    set_node_attributes(self._graph, {
-                        str(l) + str(n): {
-                            'label': '',
-                            'fontcolor': '',
-                            'style': '',
-                            'color': self.input_layer_node_color
-                        }})
-                else:
-                    set_node_attributes(self._graph, {
-                        str(l) + str(n): {
-                            'label': '',
-                            'fontcolor': '',
-                            'style': '',
-                            'color': self.inner_layer_node_color
-                        }})
-
-            for h in range(0, layer.output_shape[1]):
-                if l == len(self.model.layers) - 1:
-                    set_node_attributes(self._graph, {
-                        str(l + 1) + str(h): {
-                            'label': '',
-                            'fontcolor': '',
-                            'style': '',
-                            'color': self.output_layer_node_color
-                        }})
+        self._graph = self._graph_original_copy.copy()
 
 
     def animate_learning(self, X, Y, epochs=100, snap_freq=10, filename='learn', duration=1000):
@@ -491,9 +496,7 @@ class DenseGraph():
         vmax = max([X[:, 0].max(), X[:, 1].max()])
         norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
 
-        inner_cmap = create_colormap(self.inner_layer_node_color)
-        input_cmap = create_colormap(self.input_layer_node_color)
-        output_cmap = create_colormap(self.output_layer_node_color)
+        color_maps = {}
 
         predictions = [X]
         for i in range(len(self._int_models)):
@@ -506,22 +509,26 @@ class DenseGraph():
 
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
+
+                    index = str(l) + str(n)
+                    the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
+
                     if l == 0:
                         set_node_attributes(self._graph, {
-                            str(l) + str(n): {
+                            index: {
                                 'style': 'filled',
-                                'color': str(rgb2hex(input_cmap(norm(act))))
+                                'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
                         if int(act) == act:
                             set_node_attributes(self._graph, {
-                                str(l) + str(n): {
+                                index: {
                                     'label': str(act)
                                 }})
                     else:
                         set_node_attributes(self._graph, {
                             str(l) + str(n): {
                                 'style': 'filled',
-                                'color': str(rgb2hex(inner_cmap(norm(act))))
+                                'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
 
                 if l == len(self.model.layers) - 1:
@@ -532,11 +539,15 @@ class DenseGraph():
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         act = predictions[l + 1][i][h]
+
+                        index = str(l + 1) + str(h)
+                        the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
+
                         set_node_attributes(self._graph, {
-                            str(l + 1) + str(h): {
+                            index: {
                                 'label': str(int(round(act))),
                                 'style': 'filled',
-                                'color': str(rgb2hex(output_cmap(norm(act))))
+                                'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
 
                 network_images.append(self._snap(filename))

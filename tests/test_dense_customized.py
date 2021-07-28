@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import sklearn.datasets as datasets
 
 from kviz.dense import DenseGraph
+from kviz.helper_functions import get_random_color, get_random_shape
 
 # for testing dense models with different colors and shapes. Most of the codes are from test_viz.py.
 
@@ -43,9 +44,49 @@ def test_dense_input_xor_customized():
     ax.axis('off')
     fig.savefig("test_model_xor_customized.png")
     dg = DenseGraph(model)
-    dg.customize_graph(input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                       edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
+    dg.customize_graph(input_node_color='#FF0000', inner_node_color='#00FF00', output_node_color='#FFFF00',
+                       edge_clr='#0000FF', input_node_shape='circle', inner_node_shape='oval',
+                       output_node_shape='pentagon')
     dg.render(X, filename='test_input_xor_customized')
+
+    # test: set nodes manually
+    the_graph = dg.get_graph()
+    for l in range(len(model.layers)):
+        layer = model.layers[l]
+
+        for n in range(0, layer.input_shape[1]):
+            if l == 0:
+                the_graph.add_node(
+                    str(l) + str(n),
+                    shape=get_random_shape(),
+                    color=get_random_color(),
+                    label=''
+                )
+            else:
+                the_graph.add_node(
+                    str(l) + str(n),
+                    shape=get_random_shape(),
+                    color=get_random_color(),
+                    label=''
+                )
+
+            for h in range(0, layer.output_shape[1]):
+                if l == len(model.layers) - 1:
+                    the_graph.add_node(
+                        str(l + 1) + str(h),
+                        shape=get_random_shape(),
+                        color=get_random_color(),
+                        label=''
+                    )
+                the_graph.add_edge(
+                    str(l) + str(n),
+                    str(l + 1) + str(h),
+                    color=get_random_color()
+                )
+    dg.set_graph(the_graph)
+    dg.set_x_color("#FF0000")
+    dg.set_x_marker("^")
+    dg.render(X, filename='test_input_xor_customized_manually')
 
 
 def test_dense_input_line_customized():
@@ -86,8 +127,9 @@ def test_dense_input_line_customized():
 
     fig.savefig("test_model_line_customized.png")
 
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
+    dg = DenseGraph(model, input_node_color='#FF0000', inner_node_color='#00FF00', output_node_color='#FFFF00',
+                    edge_clr='#0000FF', input_node_shape='circle', inner_node_shape='diamond',
+                    output_node_shape='octagon')
     dg.render(X, filename='test_input_line_customized', duration=300)
 
 
@@ -106,6 +148,10 @@ def test_animate_learning_customized():
     X = np.array(list(filter(lambda x: x[0]**2 + x[1]**2 < 1 or x[0]**2 + x[1]**2 > 1.5, t)))
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
-    dg = DenseGraph(model, input_color='#FF0000', inner_color='#00FF00', output_color='#FFFF00',
-                    edge_clr='#0000FF', input_shape='circle', inner_shape='diamond', output_shape='polygon')
+    dg = DenseGraph(model, input_node_color='#FF0000', inner_node_color='#00FF00', output_node_color='#FFFF00',
+                    edge_clr='#0000FF', input_node_shape='circle', inner_node_shape='diamond',
+                    output_node_shape='polygon')
     dg.animate_learning(X, Y, filename='test_animate_customized')
+
+test_dense_input_xor_customized()
+test_dense_input_line_customized()
