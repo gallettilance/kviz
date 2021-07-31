@@ -152,4 +152,3 @@ def test_dense_input_line_customized():
     dg.set_graph(the_graph)
 
     dg.render(X, filename='test_input_line_customized', duration=300)
-test_dense_input_xor_customized()
