@@ -16,16 +16,8 @@ valid_graphviz_shapes = [
 
 chars = '0123456789ABCDEF'
 
-default_node_shape = "circle"
-default_edge_color = "#B20000"
-default_input_node_color = "#3498db"
-default_inner_node_color = "#2ecc71"
-default_output_node_color = "#3498db"
-default_X_color = "#3498db"
-default_X_marker = "o"
 
-
-def create_colormap(hex_color_string, N=25, step=51):
+def create_colormap(hex_color_string, N=10, step=51):
     """
 
         Parameters:

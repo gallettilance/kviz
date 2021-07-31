@@ -24,9 +24,7 @@ from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense
 from kviz.helper_functions import (
-    get_or_create_colormap_with_dict, check_regular_expression_for_color, check_valid_networkx_shape,
-    default_node_shape, default_inner_node_color, default_edge_color, default_input_node_color,
-    default_output_node_color, default_X_color, default_X_marker
+    get_or_create_colormap_with_dict, check_regular_expression_for_color
 )
 import logging
 
@@ -68,39 +66,17 @@ class DenseGraph():
 
     """
 
-    def __init__(self, model, input_node_color=default_input_node_color, inner_node_color=default_inner_node_color,
-                 output_node_color=default_output_node_color, edge_clr=default_edge_color,
-                 input_node_shape=default_node_shape, inner_node_shape=default_node_shape,
-                 output_node_shape=default_node_shape):
+    def __init__(self, model):
         """
 
             Parameters:
                 model: A keras model.
                     Since our class is called DenseGraph(), the keras model should only contain dense layers.
-                input_node_color: str.
-                    The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_node_color: str.
-                    The color of the inner layer(s) in hex form.
-                output_node_color: str.
-                    The color of the output layer in hex form.
-                edge_clr: str.
-                    The color of the edge connecting nodes of different layer. In hex form.
-                input_node_shape: str.
-                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
-                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
-                    Note that now only polygon-based shapes are supported.
-                inner_node_shape: str.
-                    The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_node_shape: str.
-                    The shape of the nodes in the output layer. Should be a valid shape.
 
         """
-        self._set_colors_shapes(input_node_color, inner_node_color, output_node_color,
-                                edge_clr, input_node_shape, inner_node_shape, output_node_shape)
-
         # the color&shape for _snap_X()
-        self.x_color = default_X_color
-        self.x_marker = default_X_marker
+        self.x_color = "#3498db"
+        self.x_marker = "o"
 
         self.model = model
         self._graph = self._make_digraph()
@@ -137,59 +113,6 @@ class DenseGraph():
 
         """
         self.x_marker = marker
-
-    def _set_colors_shapes(self, input_node_color, inner_node_color, output_node_color,
-                           edge_clr, input_node_shape, inner_node_shape, output_node_shape):
-        """
-            A helper method that sets the colors and shapes of the graph.
-
-            Parameters:
-                input_node_color: str.
-                    The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_node_color: str.
-                    The color of the inner layer(s) in hex form.
-                output_node_color: str.
-                    The color of the output layer in hex form.
-                edge_clr: str.
-                    The color of the edge connecting nodes of different layer. In hex form.
-                input_node_shape: str.
-                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
-                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
-                    Note that now only polygon-based shapes are supported.
-                inner_node_shape: str.
-                    The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_node_shape: str.
-                    The shape of the nodes in the output layer. Should be a valid shape.
-        """
-        self.input_layer_node_color = input_node_color if check_regular_expression_for_color(input_node_color)\
-            else default_input_node_color
-        self.inner_layer_node_color = inner_node_color if check_regular_expression_for_color(inner_node_color)\
-            else default_inner_node_color
-        self.output_layer_node_color = output_node_color if check_regular_expression_for_color(output_node_color)\
-            else default_output_node_color
-        self.edge_color = edge_clr if check_regular_expression_for_color(edge_clr) else default_edge_color
-        self.input_layer_node_shape = input_node_shape if check_valid_networkx_shape(input_node_shape)\
-            else default_node_shape
-        self.inner_layer_node_shape = inner_node_shape if check_valid_networkx_shape(inner_node_shape)\
-            else default_node_shape
-        self.output_layer_node_shape = output_node_shape if check_valid_networkx_shape(output_node_shape)\
-            else default_node_shape
-
-        if self.input_layer_node_color != input_node_color:
-            logging.warning("Invalid value for input node color. Default value is used.")
-        if self.inner_layer_node_color != inner_node_color:
-            logging.warning("Invalid value for inner node color. Default value is used.")
-        if self.output_layer_node_color != output_node_color:
-            logging.warning("Invalid value for output node color. Default value is used.")
-        if self.edge_color != edge_clr:
-            logging.warning("Invalid value for edge color. Default value is used.")
-        if self.input_layer_node_shape != input_node_shape:
-            logging.warning("Invalid value for input node shape. Default value is used.")
-        if self.inner_layer_node_shape != inner_node_shape:
-            logging.warning("Invalid value for inner node shape. Default value is used.")
-        if self.output_layer_node_shape != output_node_shape:
-            logging.warning("Invalid value for output node shape. Default value is used.")
-
 
     def get_graph(self):
         """
@@ -239,15 +162,15 @@ class DenseGraph():
                 if l == 0:
                     graph.add_node(
                         str(l) + str(n),
-                        shape=self.input_layer_node_shape,
-                        color=self.input_layer_node_color,
+                        shape="circle",
+                        color="#3498db",
                         label=''
                     )
                 else:
                     graph.add_node(
                         str(l) + str(n),
-                        shape=self.inner_layer_node_shape,
-                        color=self.inner_layer_node_color,
+                        shape="circle",
+                        color="#2ecc71",
                         label=''
                     )
 
@@ -255,52 +178,17 @@ class DenseGraph():
                     if l == len(self.model.layers) - 1:
                         graph.add_node(
                             str(l + 1) + str(h),
-                            shape=self.output_layer_node_shape,
-                            color=self.output_layer_node_color,
+                            shape="circle",
+                            color="#3498db",
                             label=''
                         )
                     graph.add_edge(
                         str(l) + str(n),
                         str(l + 1) + str(h),
-                        color=self.edge_color
+                        color="#B20000"
                     )
 
         return graph
-
-
-    def customize_graph(self, input_node_color=default_input_node_color, inner_node_color=default_inner_node_color,
-                        output_node_color=default_output_node_color, edge_clr=default_edge_color,
-                        input_node_shape=default_node_shape, inner_node_shape=default_node_shape,
-                        output_node_shape=default_node_shape):
-        """
-            Changes the colors and shapes of the graph. It can be called after a DenseGraph instance is created and before
-            render().
-            It takes advantages of the existing methods _set_graph() and _make_digraph().
-
-            Parameters:
-                input_node_color: str.
-                    The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_node_color: str.
-                    The color of the inner layer(s) in hex form.
-                output_node_color: str.
-                    The color of the output layer in hex form.
-                edge_clr: str.
-                    The color of the edge connecting nodes of different layer. In hex form.
-                input_node_shape: str.
-                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
-                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
-                    Note that now only polygon-based shapes are supported.
-                inner_node_shape: str.
-                    The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_node_shape: str.
-                    The shape of the nodes in the output layer. Should be a valid shape.
-
-        Returns:
-            None
-        """
-        self._set_colors_shapes(input_node_color, inner_node_color, output_node_color,
-                                edge_clr, input_node_shape, inner_node_shape, output_node_shape)
-        self.set_graph(self._make_digraph())
 
 
     def _get_int_models(self):
