@@ -75,10 +75,7 @@ def test_dense_input_xor_customized():
                 })
 
     dg.set_graph(the_graph)
-    dg.set_x_color("#FF0000")
-    dg.set_x_marker("^")
-
-    dg.render(X, filename='test_input_xor_customized')
+    dg.render(X, filename='test_input_xor_customized', x_color="#FF0000", x_marker="^")
 
 
 def test_dense_input_line_customized():

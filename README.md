@@ -186,14 +186,15 @@ consists of a pyplot graph and a networkx graph. You can change the
 color and marker of the points in the pyplot graph, and attributes like 
 the color and shape of each node in the networkx graph.
 
-For the pyplot graph, you can use method `set_x_color` and `set_x_marker`.
-
 For the networkx graph, first, you need to use the `get_graph` method to get
 the networkx graph from `DenseGraph`. Then, you can modify the graph as needed.
 One possible way is to loop through the nodes of the graph by index and use 
 `set_node_attributes` and `set_edge_attributes` from `networkx`. Finally, you 
 can use the `set_graph` method to pass the modified graph to `DenseGraph` and 
 call `render` to get the visualization.
+
+For the pyplot graph, you can use parameters `x_color` and `x_marker` when 
+calling `render` to change the colors and shapes of the points.
 
 Below is an example using the XOR function: (assume we already had a keras model; you can get
 one using the codes above)
@@ -208,9 +209,9 @@ one using the codes above)
     the_graph = dg.get_graph()
     
     # Loop through the graph.
-    for l in range(len(model.layers)):
+    for l in range(len(model.layers)):  # get number of layers
         layer = model.layers[l]
-        for n in range(0, layer.input_shape[1]):
+        for n in range(0, layer.input_shape[1]):  # get number of nodes in that layer
             set_node_attributes(the_graph, {
                 str(l) + str(n): {  # "str(l) + str(n)" is the index of the node
                     'shape': "diamond",
@@ -219,9 +220,10 @@ one using the codes above)
                 }
             })
     
-            # Here, set the attributes for nodes in the output layer.
+            # Here, set the attributes for nodes in the output layer, which is the last
+            # layer of this model.
             for h in range(0, layer.output_shape[1]):
-                if l == len(model.layers) - 1:
+                if l == len(model.layers) - 1:  # check if the layer is the last layer
                     set_node_attributes(the_graph, {
                         str(l + 1) + str(h): {
                             'shape': "square",
@@ -241,12 +243,8 @@ one using the codes above)
     # Pass the modified network graph to DenseGraph. 
     dg.set_graph(the_graph)
     
-    # Set the color and marker in the pyplot graph.
-    dg.set_x_color("#FF0000")
-    dg.set_x_marker("^")
-    
-    # Get the visualization.
-    dg.render(X)
+    # Get the visualization & set the color and marker in the pyplot graph.
+    dg.render(X, x_color="#FF0000", x_marker="^")
 ```
 
 The result is:
