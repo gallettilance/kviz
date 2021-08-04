@@ -208,7 +208,7 @@ one using the codes above)
     # Get the networkx graph.
     the_graph = dg.get_graph()
     
-    # Loop through the graph.
+    # Loop through the graph by looping through the model.
     for l in range(len(model.layers)):  # get number of layers
         layer = model.layers[l]
         for n in range(0, layer.input_shape[1]):  # get number of nodes in that layer
@@ -245,6 +245,77 @@ one using the codes above)
     
     # Get the visualization & set the color and marker in the pyplot graph.
     dg.render(X, x_color="#FF0000", x_marker="^")
+```
+
+Of course, you do not need to loop through the model if you already know the
+number of layers and number of nodes in each layer. You can directly set the 
+attributes of every node by its index using `set_node_attributes`. 
+
+The index of each node is defined as 
+a string, which equals the index of the layer (starts from 0) plus the index of
+the node in that layer (starts from 0). For example, the index "00" means the 
+first node ("0") in the first layer ("0").
+
+Similarly, you can use `set_edge_attributes` to directly set the attributes of 
+an edge, given you know its index. The index of an edge is a tuple consisting 
+of 2 nodes that are connected by it. The node in the upper layer usually comes 
+first. For example, ("00", "10") is the index of an edge that connects node 
+"00" and node "10".
+
+Below is the code example. It will give the same result as the codes above.
+
+```python
+    from networkx import set_node_attributes, set_edge_attributes
+
+    dg = DenseGraph(model)
+
+    the_graph = dg.get_graph()
+
+    # the input has a shape of 2, same as the inner dense layer
+    # set the input nodes first
+    l = "0"
+    for n in range(2):  # a shape of 2
+        set_node_attributes(the_graph, {
+            l + str(n): {  # l + str(n) is the index
+                'shape': "diamond",
+                'color': "#00ff00",
+                'label': ""
+            }
+        })
+
+    # set the inner dense layer then. In this case, there is only 1 inner dense layer.
+    l = "1"
+    for n in range(2):  # a shape of 2
+        set_node_attributes(the_graph, {
+            l + str(n): {  # l + str(n) is the index
+                'shape': "diamond",
+                'color': "#00ff00",
+                'label': ""
+            }
+        })
+
+    # set the output dense layer, which has a shape of 1
+    l = "2"
+    set_node_attributes(the_graph, {
+        l + "0": {  # the index
+            'shape': "square",
+            'color': "#ff0000",
+            'label': ""
+        }
+    })
+
+    # finally set all the edges
+    # because number of nodes is small in this case, all edge ids are listed for convenience
+    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
+    for edge_id in edge_ids:
+        set_edge_attributes(the_graph, {
+            edge_id: {
+                'color': "#0000ff"
+            }
+        })
+
+    dg.set_graph(the_graph)
+    dg.render(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
 ```
 
 The result is:

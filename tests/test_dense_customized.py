@@ -78,6 +78,92 @@ def test_dense_input_xor_customized():
     dg.render(X, filename='test_input_xor_customized', x_color="#FF0000", x_marker="^")
 
 
+def test_dense_input_xor_customized_alternative():
+    """ Different from test_dense_input_xor_customized(), this function does not loop through the model. """
+    ACTIVATION = "sigmoid"
+    model = keras.models.Sequential()
+    model.add(layers.Dense(2, input_dim=2, activation=ACTIVATION))
+    model.add(layers.Dense(1, activation=ACTIVATION))
+    model.compile(loss="binary_crossentropy")
+
+    X = np.array([
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1]])
+    Y = np.array([x[0] ^ x[1] for x in X])
+
+    model.fit(X, Y, batch_size=4, epochs=1000)
+
+    colors = np.array(['b', 'g'])
+    fig, ax = plt.subplots()
+    ax.scatter(X[:, 0], X[:, 1], color=colors[Y].tolist(), s=50, alpha=0.8)
+
+    h = .02
+    x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+    y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                         np.arange(y_min, y_max, h))
+    meshData = np.c_[xx.ravel(), yy.ravel()]
+
+    Z = model.predict(meshData)
+    Z = np.array([0 if x < .5 else 1 for x in Z])
+    Z = Z.reshape(xx.shape)
+    ax.contourf(xx, yy, Z, alpha=.3, cmap=plt.cm.Paired)
+    ax.axis('off')
+    fig.savefig("test_model_xor_customized.png")
+    dg = DenseGraph(model)
+
+    the_graph = dg.get_graph()
+
+    # the input has a shape of 2, same as the inner dense layer
+    # set the input nodes first
+    l = "0"
+    for n in range(2):  # a shape of 2
+        set_node_attributes(the_graph, {
+            l + str(n): {  # l + str(n) is the index
+                'shape': "diamond",
+                'color': "#00ff00",
+                'label': ""
+            }
+        })
+
+    # set the inner dense layer then. In this case, there is only 1 inner dense layer.
+    l = "1"
+    for n in range(2):  # a shape of 2
+        set_node_attributes(the_graph, {
+            l + str(n): {  # l + str(n) is the index
+                'shape': "diamond",
+                'color': "#00ff00",
+                'label': ""
+            }
+        })
+
+    # set the output dense layer, which has a shape of 1
+    l = "2"
+    set_node_attributes(the_graph, {
+        l + "0": {  # the index
+            'shape': "square",
+            'color': "#ff0000",
+            'label': ""
+        }
+    })
+
+    # finally set all the edges
+    # id of an edge is a tuple consisting of the ids of the 2 nodes that are connected
+    # usually the node in the upper layer comes first in the tuple
+    # because number of nodes is small in this case, all edge ids are listed for convenience
+    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
+    for edge_id in edge_ids:
+        set_edge_attributes(the_graph, {
+            edge_id: {
+                'color': "#0000ff"
+            }
+        })
+
+    dg.set_graph(the_graph)
+    dg.render(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
+
 def test_dense_input_line_customized():
     ACTIVATION = "sigmoid"
     model = keras.models.Sequential()
