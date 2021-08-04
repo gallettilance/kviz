@@ -24,9 +24,8 @@ from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense
 from kviz.helper_functions import (
-    get_or_create_colormap_with_dict, check_regular_expression_for_color
+    get_or_create_colormap_with_dict
 )
-import logging
 
 
 class DenseGraph():
@@ -48,17 +47,6 @@ class DenseGraph():
                 you can set this attribute to a modified DiGraph
                 using this method
 
-            set_x_color :
-                Set the color of the points in the pyplot graph.
-
-            set_x_marker :
-                Set the marker of the points in the pyplot graph.
-
-            customize_graph:
-                Changes the colors and shapes of the graph.
-                It can be called after a DenseGraph instance is created
-                and before render().
-
             render :
                 Can print the network architecture or, if input
                 is provided, show a GIF of the activations of each
@@ -74,45 +62,10 @@ class DenseGraph():
                     Since our class is called DenseGraph(), the keras model should only contain dense layers.
 
         """
-        # the color&shape for _snap_X()
-        self.x_color = "#3498db"
-        self.x_marker = "o"
-
         self.model = model
         self._graph = self._make_digraph()
         self._graph_original_copy = self._graph.copy()
         self._int_models = self._get_int_models()
-
-    def set_x_color(self, color):
-        """
-            Set the color for points in the pyplot graph.
-
-            Parameter:
-                color: str.
-                    Should be a valid hex color string.
-
-            Returns: None.
-
-        """
-        if check_regular_expression_for_color(color):
-            self.x_color = color
-        else:
-            logging.warning("Invalid value for x color. Default value is used")
-
-    def set_x_marker(self, marker):
-        """
-            Set the marker for points in the pyplot graph.
-
-            Parameter:
-                marker: str.
-                    The marker (e.g., 'o').
-                    Check https://matplotlib.org/stable/api/markers_api.html#module-matplotlib.markers
-                    for valid markers.
-
-            Returns: None.
-
-        """
-        self.x_marker = marker
 
     def get_graph(self):
         """
@@ -226,21 +179,33 @@ class DenseGraph():
         return np.asarray(im.open(filename + '.png'))
 
 
-    def _snap_X(self, i, X, filename):
+    def _snap_X(self, i, X, filename, x_color="#3498db", x_marker="o"):
         """
             Take snapshot image of the input
 
             TODO:
                 1. this doesn't work for X in > 2 dimension
                 2. how to plot input could / should be specified by user
+
+            Parameters:
+                i: int.
+                    the index of the point in X
+                X: List.
+                    a list of coordinates of the points
+                filename: str.
+                    name of file to which visualization will be saved
+                x_color: str.
+                    the color (in hex form) of the points in the pyplot graph
+                x_marker: str.
+                    the shape of the points in the pyplot graph
         """
         fig, ax = plt.subplots()
-        ax.scatter(X[:, 0], X[:, 1], s=300, marker=self.x_marker, facecolors='none', edgecolors=self.x_color)
-        ax.scatter(X[i, 0], X[i, 1], s=300, marker=self.x_marker, color=self.x_color)
-        ax.spines['bottom'].set_color(self.x_color)
-        ax.spines['left'].set_color(self.x_color)
-        ax.tick_params(axis='x', colors=self.x_color)
-        ax.tick_params(axis='y', colors=self.x_color)
+        ax.scatter(X[:, 0], X[:, 1], s=300, marker=x_marker, facecolors='none', edgecolors=x_color)
+        ax.scatter(X[i, 0], X[i, 1], s=300, marker=x_marker, color=x_color)
+        ax.spines['bottom'].set_color(x_color)
+        ax.spines['left'].set_color(x_color)
+        ax.tick_params(axis='x', colors=x_color)
+        ax.tick_params(axis='y', colors=x_color)
         fig.savefig(filename + '_X.png', transparent=True)
         plt.close()
         return np.asarray(im.open(filename + '_X.png'))
@@ -354,7 +319,7 @@ class DenseGraph():
         return self.model
 
 
-    def render(self, X=None, filename='graph', duration=1000):
+    def render(self, X=None, filename='graph', duration=1000,  x_color="#3498db", x_marker="o"):
         """
         Render visualization of a Sequential Dense keras model
 
@@ -367,6 +332,10 @@ class DenseGraph():
                 name of file to which visualization will be saved
             duration : int
                 duration in ms between images in GIF
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
 
         Returns:
             None
@@ -421,7 +390,7 @@ class DenseGraph():
 
                 if l == len(self.model.layers) - 1:
                     network_images.append(self._snap(filename))
-                    input_images.append(self._snap_X(i, X, filename))
+                    input_images.append(self._snap_X(i, X, filename, x_color=x_color, x_marker=x_marker))
                     self._reset()
 
                 for h in range(0, layer.output_shape[1]):
@@ -439,7 +408,7 @@ class DenseGraph():
                             }})
 
                 network_images.append(self._snap(filename))
-                input_images.append(self._snap_X(i, X, filename))
+                input_images.append(self._snap_X(i, X, filename, x_color=x_color, x_marker=x_marker))
                 self._reset()
             self._reset()
 
