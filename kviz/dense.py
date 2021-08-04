@@ -319,7 +319,7 @@ class DenseGraph():
         return self.model
 
 
-    def render(self, X=None, filename='graph', duration=1000,  x_color="#3498db", x_marker="o"):
+    def render(self, X=None, filename='graph', duration=1000, x_color="#3498db", x_marker="o"):
         """
         Render visualization of a Sequential Dense keras model
 
