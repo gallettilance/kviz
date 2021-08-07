@@ -4,11 +4,42 @@ from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import sklearn.datasets as datasets
 from networkx import set_node_attributes, set_edge_attributes
-
 from kviz.dense import DenseGraph
-from kviz.helper_functions import get_random_color, get_random_shape
+import random
 
 # for testing dense models with different colors and shapes. Most of the codes are from test_viz.py.
+
+# According to https://graphviz.org/doc/info/shapes.html.
+# There are three main types of shapes : polygon-based, record-based and user-defined.
+# For now, this list only supports some polygon-based shapes.
+valid_graphviz_shapes = [
+    "box", "polygon", "ellipse", "oval", "circle", "egg", "triangle", "diamond", "trapezium",
+    "parallelogram", "house", "pentagon", "hexagon", "septagon", "octagon", "doublecircle", "doubleoctagon",
+    "tripleoctagon", "invtriangle", "invtrapezium", "invhouse", "Mdiamond", "Msquare", "Mcircle", "rect", "rectangle",
+    "square", "star", "cylinder",
+]
+
+chars = '0123456789ABCDEF'
+
+
+def get_random_shape():
+    """
+        Randomly returns a shape.
+
+        Returns: str.
+
+    """
+    return random.choice(valid_graphviz_shapes)
+
+
+def get_random_color():
+    """
+        Randomly returns a hex color string.
+
+        Returns: str.
+
+    """
+    return "#" + "".join([random.choice(chars) for _ in range(6)])
 
 
 def test_dense_input_xor_customized():

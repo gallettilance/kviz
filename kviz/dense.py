@@ -383,7 +383,7 @@ class DenseGraph():
                                 }})
                     else:
                         set_node_attributes(self._graph, {
-                            str(l) + str(n): {
+                            index: {
                                 'style': 'filled',
                                 'color': str(rgb2hex(the_color_map(norm(act))))
                             }})

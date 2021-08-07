@@ -1,20 +1,5 @@
 from matplotlib.colors import ListedColormap
 import numpy as np
-import re
-import random
-
-
-# According to https://graphviz.org/doc/info/shapes.html.
-# There are three main types of shapes : polygon-based, record-based and user-defined.
-# For now, this list only supports some polygon-based shapes.
-valid_graphviz_shapes = [
-    "box", "polygon", "ellipse", "oval", "circle", "egg", "triangle", "diamond", "trapezium",
-    "parallelogram", "house", "pentagon", "hexagon", "septagon", "octagon", "doublecircle", "doubleoctagon",
-    "tripleoctagon", "invtriangle", "invtrapezium", "invhouse", "Mdiamond", "Msquare", "Mcircle", "rect", "rectangle",
-    "square", "star", "cylinder",
-]
-
-chars = '0123456789ABCDEF'
 
 
 def create_colormap(hex_color_string, N=10, step=51):
@@ -70,54 +55,3 @@ def get_or_create_colormap_with_dict(color, dictionary):
         the_color_map = create_colormap(color)
         dictionary[color] = the_color_map
     return the_color_map
-
-
-def check_regular_expression_for_color(color):
-    """
-        Check if the color string is a valid hex form (e.g. "#FFFFFF").
-        True if the string is valid; False otherwise.
-
-        Parameters:
-            color: str.
-                The color string to check.
-
-        Returns: bool.
-
-    """
-    return re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', color)
-
-
-def check_valid_networkx_shape(shape):
-    """
-        Check if the shape string is a valid for networkx. (e.g. "polygon").
-        Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
-        For now, most polygon-based shapes are supported.
-
-        Parameters:
-            shape: str.
-                The shape.
-
-        Returns: bool.
-
-    """
-    return shape in valid_graphviz_shapes
-
-
-def get_random_shape():
-    """
-        Randomly returns a shape.
-
-        Returns: str.
-
-    """
-    return random.choice(valid_graphviz_shapes)
-
-
-def get_random_color():
-    """
-        Randomly returns a hex color string.
-
-        Returns: str.
-
-    """
-    return "#" + "".join([random.choice(chars) for _ in range(6)])
