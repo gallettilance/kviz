@@ -18,45 +18,14 @@ Copyright 2021 Lance Galletti
 import numpy as np
 from PIL import Image as im
 import matplotlib.pyplot as plt
-from matplotlib.colors import rgb2hex, Normalize, ListedColormap
+from matplotlib.colors import rgb2hex, Normalize
 from networkx import DiGraph, set_node_attributes
 from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense
-import re
-
-
-def create_colormap(hex_color_string, N=25, step=51):
-    """
-
-        Parameters:
-            hex_color_string: str.
-                A string in format "#ffffff".
-            N: int.
-                should be within [1, 256]. The bigger N is, the more color the colormap will contain.
-            step: int.
-                Controls the range of the color map; the bigger step is, the bigger the range.
-                A step that is either too big or too small might cause problems.
-
-        Returns: a matplotlib colormap
-
-    """
-    hex_color_string = hex_color_string.lstrip('#')
-    r, g, b = tuple(int(hex_color_string[i: i + 2], 16) for i in (0, 2, 4))
-
-    left_r = max(0, r - step)
-    right_r = min(255, r + step)
-    left_g = max(0, g - step)
-    right_g = min(255, g + step)
-    left_b = max(0, b - step)
-    right_b = min(255, b + step)
-
-    vals = np.ones((N, 4))
-    vals[:, 0] = np.linspace(left_r / right_r, 1, N)
-    vals[:, 1] = np.linspace(left_g / right_g, 1, N)
-    vals[:, 2] = np.linspace(left_b / right_b, 1, N)
-    newcmp = ListedColormap(vals)
-    return newcmp
+from kviz.helper_functions import (
+    get_or_create_colormap_with_dict
+)
 
 
 class DenseGraph():
@@ -85,53 +54,18 @@ class DenseGraph():
 
     """
 
-    def __init__(self, model, input_color='#3498db', inner_color='#2ecc71', output_color='#3498db',
-                 edge_clr='#B20000', input_shape='circle', inner_shape='circle', output_shape='circle'):
+    def __init__(self, model):
         """
 
             Parameters:
                 model: A keras model.
                     Since our class is called DenseGraph(), the keras model should only contain dense layers.
-                input_color: str.
-                    The color of the input layer in hex form (e.g. "#FFFFFF").
-                inner_color: str.
-                    The color of the inner layer(s) in hex form.
-                output_color: str.
-                    The color of the output layer in hex form.
-                edge_clr: str.
-                    The color of the edge connecting nodes of different layer. In hex form.
-                input_shape: str.
-                    The shape of the nodes in the input layer. Should be a valid shape (e.g. "polygon").
-                    Otherwise the shape will be "box" for invalid input.
-                    Check https://graphviz.org/doc/info/shapes.html for some valid shapes.
-                inner_shape: str.
-                    The shape of the nodes in the inner layer(s). Should be a valid shape.
-                output_shape:
-                    The shape of the nodes in the output layer. Should be a valid shape.
-        """
-        expression = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
-        if re.search(expression, input_color) and re.search(expression, inner_color) and \
-                re.search(expression, output_color) and re.search(expression, edge_clr):
-            self.input_layer_node_color = input_color
-            self.inner_layer_node_color = inner_color
-            self.output_layer_node_color = output_color
-            self.edge_color = edge_clr
-            self.input_layer_node_shape = input_shape
-            self.inner_layer_node_shape = inner_shape
-            self.output_layer_node_shape = output_shape
-        else:
-            self.input_layer_node_color = '#3498db'
-            self.inner_layer_node_color = '#2ecc71'
-            self.output_layer_node_color = '#3498db'
-            self.edge_color = '#B20000'
-            self.input_layer_node_shape = 'circle'
-            self.inner_layer_node_shape = 'circle'
-            self.output_layer_node_shape = 'circle'
 
+        """
         self.model = model
         self._graph = self._make_digraph()
+        self._graph_original_copy = self._graph.copy()
         self._int_models = self._get_int_models()
-
 
     def get_graph(self):
         """
@@ -160,14 +94,13 @@ class DenseGraph():
                 None
         """
         self._graph = graph
+        self._graph_original_copy = self._graph.copy()
         return
 
 
     def _make_digraph(self):
         """
         Constructs the DiGraph
-
-        TODO: colors, shapes etc could be specified by user
         """
 
         graph = DiGraph(bgcolor="transparent", nodesep='1', ranksep='1')
@@ -182,15 +115,15 @@ class DenseGraph():
                 if l == 0:
                     graph.add_node(
                         str(l) + str(n),
-                        shape=self.input_layer_node_shape,
-                        color=self.input_layer_node_color,
+                        shape="circle",
+                        color="#3498db",
                         label=''
                     )
                 else:
                     graph.add_node(
                         str(l) + str(n),
-                        shape=self.inner_layer_node_shape,
-                        color=self.inner_layer_node_color,
+                        shape="circle",
+                        color="#2ecc71",
                         label=''
                     )
 
@@ -198,14 +131,14 @@ class DenseGraph():
                     if l == len(self.model.layers) - 1:
                         graph.add_node(
                             str(l + 1) + str(h),
-                            shape=self.output_layer_node_shape,
-                            color=self.output_layer_node_color,
+                            shape="circle",
+                            color="#3498db",
                             label=''
                         )
                     graph.add_edge(
                         str(l) + str(n),
                         str(l + 1) + str(h),
-                        color=self.edge_color
+                        color="#B20000"
                     )
 
         return graph
@@ -246,21 +179,33 @@ class DenseGraph():
         return np.asarray(im.open(filename + '.png'))
 
 
-    def _snap_X(self, i, X, filename):
+    def _snap_X(self, i, X, filename, x_color="#3498db", x_marker="o"):
         """
             Take snapshot image of the input
 
             TODO:
                 1. this doesn't work for X in > 2 dimension
                 2. how to plot input could / should be specified by user
+
+            Parameters:
+                i: int.
+                    the index of the point in X
+                X: List.
+                    a list of coordinates of the points
+                filename: str.
+                    name of file to which visualization will be saved
+                x_color: str.
+                    the color (in hex form) of the points in the pyplot graph
+                x_marker: str.
+                    the shape of the points in the pyplot graph
         """
         fig, ax = plt.subplots()
-        ax.scatter(X[:, 0], X[:, 1], s=300, facecolors='none', edgecolors=self.input_layer_node_color)
-        ax.scatter(X[i, 0], X[i, 1], s=300, color=self.input_layer_node_color)
-        ax.spines['bottom'].set_color(self.input_layer_node_color)
-        ax.spines['left'].set_color(self.input_layer_node_color)
-        ax.tick_params(axis='x', colors=self.input_layer_node_color)
-        ax.tick_params(axis='y', colors=self.input_layer_node_color)
+        ax.scatter(X[:, 0], X[:, 1], s=300, marker=x_marker, facecolors='none', edgecolors=x_color)
+        ax.scatter(X[i, 0], X[i, 1], s=300, marker=x_marker, color=x_color)
+        ax.spines['bottom'].set_color(x_color)
+        ax.spines['left'].set_color(x_color)
+        ax.tick_params(axis='x', colors=x_color)
+        ax.tick_params(axis='y', colors=x_color)
         fig.savefig(filename + '_X.png', transparent=True)
         plt.close()
         return np.asarray(im.open(filename + '_X.png'))
@@ -292,7 +237,6 @@ class DenseGraph():
         plt.close()
 
         return np.asarray(im.open(filename + '.png'))
-
 
 
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
@@ -331,36 +275,7 @@ class DenseGraph():
         """
             Resets the graph labels, colors, fonts
         """
-
-        for l in range(len(self.model.layers)):
-            layer = self.model.layers[l]
-            for n in range(0, layer.input_shape[1]):
-                if l == 0:
-                    set_node_attributes(self._graph, {
-                        str(l) + str(n): {
-                            'label': '',
-                            'fontcolor': '',
-                            'style': '',
-                            'color': self.input_layer_node_color
-                        }})
-                else:
-                    set_node_attributes(self._graph, {
-                        str(l) + str(n): {
-                            'label': '',
-                            'fontcolor': '',
-                            'style': '',
-                            'color': self.inner_layer_node_color
-                        }})
-
-            for h in range(0, layer.output_shape[1]):
-                if l == len(self.model.layers) - 1:
-                    set_node_attributes(self._graph, {
-                        str(l + 1) + str(h): {
-                            'label': '',
-                            'fontcolor': '',
-                            'style': '',
-                            'color': self.output_layer_node_color
-                        }})
+        self._graph = self._graph_original_copy.copy()
 
 
     def animate_learning(self, X, Y, epochs=100, snap_freq=10, filename='learn', duration=1000):
@@ -404,7 +319,7 @@ class DenseGraph():
         return self.model
 
 
-    def render(self, X=None, filename='graph', duration=1000):
+    def render(self, X=None, filename='graph', duration=1000, x_color="#3498db", x_marker="o"):
         """
         Render visualization of a Sequential Dense keras model
 
@@ -417,6 +332,10 @@ class DenseGraph():
                 name of file to which visualization will be saved
             duration : int
                 duration in ms between images in GIF
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
 
         Returns:
             None
@@ -434,9 +353,7 @@ class DenseGraph():
         vmax = max([X[:, 0].max(), X[:, 1].max()])
         norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
 
-        inner_cmap = create_colormap(self.inner_layer_node_color)
-        input_cmap = create_colormap(self.input_layer_node_color)
-        output_cmap = create_colormap(self.output_layer_node_color)
+        color_maps = {}
 
         predictions = [X]
         for i in range(len(self._int_models)):
@@ -449,41 +366,49 @@ class DenseGraph():
 
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
+
+                    index = str(l) + str(n)
+                    the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
+
                     if l == 0:
                         set_node_attributes(self._graph, {
-                            str(l) + str(n): {
+                            index: {
                                 'style': 'filled',
-                                'color': str(rgb2hex(input_cmap(norm(act))))
+                                'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
                         if int(act) == act:
                             set_node_attributes(self._graph, {
-                                str(l) + str(n): {
+                                index: {
                                     'label': str(act)
                                 }})
                     else:
                         set_node_attributes(self._graph, {
-                            str(l) + str(n): {
+                            index: {
                                 'style': 'filled',
-                                'color': str(rgb2hex(inner_cmap(norm(act))))
+                                'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
 
                 if l == len(self.model.layers) - 1:
                     network_images.append(self._snap(filename))
-                    input_images.append(self._snap_X(i, X, filename))
+                    input_images.append(self._snap_X(i, X, filename, x_color=x_color, x_marker=x_marker))
                     self._reset()
 
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         act = predictions[l + 1][i][h]
+
+                        index = str(l + 1) + str(h)
+                        the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
+
                         set_node_attributes(self._graph, {
-                            str(l + 1) + str(h): {
+                            index: {
                                 'label': str(int(round(act))),
                                 'style': 'filled',
-                                'color': str(rgb2hex(output_cmap(norm(act))))
+                                'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
 
                 network_images.append(self._snap(filename))
-                input_images.append(self._snap_X(i, X, filename))
+                input_images.append(self._snap_X(i, X, filename, x_color=x_color, x_marker=x_marker))
                 self._reset()
             self._reset()
 

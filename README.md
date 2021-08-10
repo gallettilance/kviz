@@ -179,6 +179,151 @@ At a glance you can see that the activations of the middle hidden node
 results in predictions of class 0 while the activation of the left-most
 and right-most hiddent nodes result in predictions of class 1.
 
+### Guidance On Graph Customization
+
+You can modify the node activation graph. The node activation graph
+consists of a pyplot graph and a networkx graph. You can change the
+color and marker of the points in the pyplot graph, and attributes like 
+the color and shape of each node in the networkx graph.
+
+For the networkx graph, first, you need to use the `get_graph` method to get
+the networkx graph from `DenseGraph`. Then, you can modify the graph as needed.
+One possible way is to loop through the nodes of the graph by index and use 
+`set_node_attributes` and `set_edge_attributes` from `networkx`. Finally, you 
+can use the `set_graph` method to pass the modified graph to `DenseGraph` and 
+call `render` to get the visualization.
+
+For the pyplot graph, you can use parameters `x_color` and `x_marker` when 
+calling `render` to change the colors and shapes of the points.
+
+Below is an example using the XOR function: (assume we already had a keras model; you can get
+one using the codes above)
+
+```python
+    from networkx import set_node_attributes, set_edge_attributes
+    
+    # "model" is already a trained keras model.
+    dg = DenseGraph(model)
+    
+    # Get the networkx graph.
+    the_graph = dg.get_graph()
+    
+    # Loop through the graph by looping through the model.
+    for l in range(len(model.layers)):  # get number of layers
+        layer = model.layers[l]
+        for n in range(0, layer.input_shape[1]):  # get number of nodes in that layer
+            set_node_attributes(the_graph, {
+                str(l) + str(n): {  # "str(l) + str(n)" is the index of the node
+                    'shape': "diamond",
+                    'color': "#00ff00",
+                    'label': ""
+                }
+            })
+    
+            # Here, set the attributes for nodes in the output layer, which is the last
+            # layer of this model.
+            for h in range(0, layer.output_shape[1]):
+                if l == len(model.layers) - 1:  # check if the layer is the last layer
+                    set_node_attributes(the_graph, {
+                        str(l + 1) + str(h): {
+                            'shape': "square",
+                            'color': "#ff0000",
+                            'label': ""
+                        }
+                    })
+                # Now set the attributes of edges.
+                # The index of an edge is an tuple consisting of the indexes of 
+                # the 2 nodes that are connected by it.
+                set_edge_attributes(the_graph, {
+                    (str(l) + str(n), str(l + 1) + str(h)): {
+                        'color': "#0000ff"
+                    }
+                })
+    
+    # Pass the modified network graph to DenseGraph. 
+    dg.set_graph(the_graph)
+    
+    # Get the visualization & set the color and marker in the pyplot graph.
+    dg.render(X, x_color="#FF0000", x_marker="^")
+```
+
+Of course, you do not need to loop through the model if you already know the
+number of layers and number of nodes in each layer. You can directly set the 
+attributes of every node by its index using `set_node_attributes`. 
+
+The index of each node is defined as 
+a string, which equals the index of the layer (starts from 0) plus the index of
+the node in that layer (starts from 0). For example, the index "00" means the 
+first node ("0") in the first layer ("0").
+
+Similarly, you can use `set_edge_attributes` to directly set the attributes of 
+an edge, given you know its index. The index of an edge is a tuple consisting 
+of 2 nodes that are connected by it. The node in the upper layer usually comes 
+first. For example, ("00", "10") is the index of an edge that connects node 
+"00" and node "10".
+
+Below is the code example. It will give the same result as the codes above.
+
+```python
+    from networkx import set_node_attributes, set_edge_attributes
+
+    dg = DenseGraph(model)
+
+    the_graph = dg.get_graph()
+
+    # the input has a shape of 2, same as the inner dense layer
+    # set the input nodes first
+    l = "0"
+    for n in range(2):  # a shape of 2
+        set_node_attributes(the_graph, {
+            l + str(n): {  # l + str(n) is the index
+                'shape': "diamond",
+                'color': "#00ff00",
+                'label': ""
+            }
+        })
+
+    # set the inner dense layer then. In this case, there is only 1 inner dense layer.
+    l = "1"
+    for n in range(2):  # a shape of 2
+        set_node_attributes(the_graph, {
+            l + str(n): {  # l + str(n) is the index
+                'shape': "diamond",
+                'color': "#00ff00",
+                'label': ""
+            }
+        })
+
+    # set the output dense layer, which has a shape of 1
+    l = "2"
+    set_node_attributes(the_graph, {
+        l + "0": {  # the index
+            'shape': "square",
+            'color': "#ff0000",
+            'label': ""
+        }
+    })
+
+    # finally set all the edges
+    # because number of nodes is small in this case, all edge ids are listed for convenience
+    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
+    for edge_id in edge_ids:
+        set_edge_attributes(the_graph, {
+            edge_id: {
+                'color': "#0000ff"
+            }
+        })
+
+    dg.set_graph(the_graph)
+    dg.render(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
+```
+
+The result is:
+
+<p align="center">
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/dense_input_xor_customized_stacked.gif?raw=true"/>
+</p>
+
 ## Release
 
 Bump the release version in the `setup.py` file, then run:
