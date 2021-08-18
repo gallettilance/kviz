@@ -114,14 +114,14 @@ class DenseGraph():
             for n in range(0, layer.input_shape[1]):
                 if l == 0:
                     graph.add_node(
-                        str(l) + str(n),
+                        str(l) + "_" + str(n),
                         shape="circle",
                         color="#3498db",
                         label=''
                     )
                 else:
                     graph.add_node(
-                        str(l) + str(n),
+                        str(l) + "_" + str(n),
                         shape="circle",
                         color="#2ecc71",
                         label=''
@@ -130,14 +130,14 @@ class DenseGraph():
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         graph.add_node(
-                            str(l + 1) + str(h),
+                            str(l + 1) + "_" + str(h),
                             shape="circle",
                             color="#3498db",
                             label=''
                         )
                     graph.add_edge(
-                        str(l) + str(n),
-                        str(l + 1) + str(h),
+                        str(l) + "_" + str(n),
+                        str(l + 1) + "_" + str(h),
                         color="#B20000"
                     )
 
@@ -367,7 +367,7 @@ class DenseGraph():
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
 
-                    index = str(l) + str(n)
+                    index = str(l) + "_" + str(n)
                     the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
 
                     if l == 0:
@@ -397,7 +397,7 @@ class DenseGraph():
                     if l == len(self.model.layers) - 1:
                         act = predictions[l + 1][i][h]
 
-                        index = str(l + 1) + str(h)
+                        index = str(l + 1) + "_" + str(h)
                         the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
 
                         set_node_attributes(self._graph, {

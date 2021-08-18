@@ -83,7 +83,7 @@ def test_dense_input_xor_customized():
 
         for n in range(0, layer.input_shape[1]):
             set_node_attributes(the_graph, {
-                str(l) + str(n): {
+                str(l) + "_" + str(n): {
                     'shape': "diamond",
                     'color': "#00ff00",
                     'label': ""
@@ -93,14 +93,14 @@ def test_dense_input_xor_customized():
             for h in range(0, layer.output_shape[1]):
                 if l == len(model.layers) - 1:
                     set_node_attributes(the_graph, {
-                        str(l + 1) + str(h): {
+                        str(l + 1) + "_" + str(h): {
                             'shape': "square",
                             'color': "#ff0000",
                             'label': ""
                         }
                     })
                 set_edge_attributes(the_graph, {
-                    (str(l) + str(n), str(l + 1) + str(h)): {
+                    (str(l) + "_" + str(n), str(l + 1) + "_" + str(h)): {
                         'color': "#0000ff"
                     }
                 })
@@ -152,7 +152,7 @@ def test_dense_input_xor_customized_alternative():
     l = "0"
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            l + "_" + str(n): {  # l + str(n) is the index
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -163,7 +163,7 @@ def test_dense_input_xor_customized_alternative():
     l = "1"
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            l + "_" + str(n): {  # l + str(n) is the index
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -173,7 +173,7 @@ def test_dense_input_xor_customized_alternative():
     # set the output dense layer, which has a shape of 1
     l = "2"
     set_node_attributes(the_graph, {
-        l + "0": {  # the index
+        l + "_0": {  # the index
             'shape': "square",
             'color': "#ff0000",
             'label': ""
@@ -184,7 +184,7 @@ def test_dense_input_xor_customized_alternative():
     # id of an edge is a tuple consisting of the ids of the 2 nodes that are connected
     # usually the node in the upper layer comes first in the tuple
     # because number of nodes is small in this case, all edge ids are listed for convenience
-    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
+    edge_ids = [("0_0", "1_0"), ("0_1", "1_0"), ("0_0", "1_1"), ("0_1", "1_1"), ("1_0", "2_0"), ("1_1", "2_0")]
     for edge_id in edge_ids:
         set_edge_attributes(the_graph, {
             edge_id: {
@@ -242,7 +242,7 @@ def test_dense_input_line_customized():
 
         for n in range(0, layer.input_shape[1]):
             set_node_attributes(the_graph, {
-                str(l) + str(n): {
+                str(l) + "_" + str(n): {
                     'shape': get_random_shape(),
                     'color': get_random_color(),
                     'label': ""
@@ -252,14 +252,14 @@ def test_dense_input_line_customized():
             for h in range(0, layer.output_shape[1]):
                 if l == len(model.layers) - 1:
                     set_node_attributes(the_graph, {
-                        str(l + 1) + str(h): {
+                        str(l + 1) + "_" + str(h): {
                             'shape': get_random_shape(),
                             'color': get_random_color(),
                             'label': ""
                         }
                     })
                 set_edge_attributes(the_graph, {
-                    (str(l) + str(n), str(l + 1) + str(h)): {
+                    (str(l) + "_" + str(n), str(l + 1) + "_" + str(h)): {
                         'color': get_random_color()
                     }
                 })

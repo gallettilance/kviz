@@ -213,7 +213,7 @@ one using the codes above)
         layer = model.layers[l]
         for n in range(0, layer.input_shape[1]):  # get number of nodes in that layer
             set_node_attributes(the_graph, {
-                str(l) + str(n): {  # "str(l) + str(n)" is the index of the node
+                str(l) + "_" + str(n): {  # "str(l) + '_' + str(n)" is the index of the node
                     'shape': "diamond",
                     'color': "#00ff00",
                     'label': ""
@@ -225,7 +225,7 @@ one using the codes above)
             for h in range(0, layer.output_shape[1]):
                 if l == len(model.layers) - 1:  # check if the layer is the last layer
                     set_node_attributes(the_graph, {
-                        str(l + 1) + str(h): {
+                        str(l + 1) + "_" + str(h): {
                             'shape': "square",
                             'color': "#ff0000",
                             'label': ""
@@ -235,7 +235,7 @@ one using the codes above)
                 # The index of an edge is an tuple consisting of the indexes of 
                 # the 2 nodes that are connected by it.
                 set_edge_attributes(the_graph, {
-                    (str(l) + str(n), str(l + 1) + str(h)): {
+                    (str(l) + "_" + str(n), str(l + 1) + "_" + str(h)): {
                         'color': "#0000ff"
                     }
                 })
@@ -252,15 +252,15 @@ number of layers and number of nodes in each layer. You can directly set the
 attributes of every node by its index using `set_node_attributes`. 
 
 The index of each node is defined as 
-a string, which equals the index of the layer (starts from 0) plus the index of
-the node in that layer (starts from 0). For example, the index "00" means the 
+a string, which equals the index of the layer (starts from 0) plus "_" plus the index of
+the node in that layer (starts from 0). For example, the index "0_0" means the 
 first node ("0") in the first layer ("0").
 
 Similarly, you can use `set_edge_attributes` to directly set the attributes of 
 an edge, given you know its index. The index of an edge is a tuple consisting 
 of 2 nodes that are connected by it. The node in the upper layer usually comes 
-first. For example, ("00", "10") is the index of an edge that connects node 
-"00" and node "10".
+first. For example, ("0_0", "1_0") is the index of an edge that connects node 
+"0_0" and node "1_0".
 
 Below is the code example. It will give the same result as the codes above.
 
@@ -276,7 +276,7 @@ Below is the code example. It will give the same result as the codes above.
     l = "0"
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            l + "_" + str(n): {  # l + "_" + str(n) is the index
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -287,7 +287,7 @@ Below is the code example. It will give the same result as the codes above.
     l = "1"
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            l + "_" + str(n): {  # l + "_" + str(n) is the index
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -297,7 +297,7 @@ Below is the code example. It will give the same result as the codes above.
     # set the output dense layer, which has a shape of 1
     l = "2"
     set_node_attributes(the_graph, {
-        l + "0": {  # the index
+        l + "_0": {  # the index
             'shape': "square",
             'color': "#ff0000",
             'label': ""
@@ -306,7 +306,7 @@ Below is the code example. It will give the same result as the codes above.
 
     # finally set all the edges
     # because number of nodes is small in this case, all edge ids are listed for convenience
-    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
+    edge_ids = [("0_0", "1_0"), ("0_1", "1_0"), ("0_0", "1_1"), ("0_1", "1_1"), ("1_0", "2_0"), ("1_1", "2_0")]
     for edge_id in edge_ids:
         set_edge_attributes(the_graph, {
             edge_id: {
