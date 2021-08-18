@@ -6,6 +6,7 @@ import sklearn.datasets as datasets
 from networkx import set_node_attributes, set_edge_attributes
 from kviz.dense import DenseGraph
 import random
+from kviz.helper_functions import unique_index
 
 # for testing dense models with different colors and shapes. Most of the codes are from test_viz.py.
 
@@ -83,7 +84,7 @@ def test_dense_input_xor_customized():
 
         for n in range(0, layer.input_shape[1]):
             set_node_attributes(the_graph, {
-                str(l) + str(n): {
+                unique_index(l, n): {
                     'shape': "diamond",
                     'color': "#00ff00",
                     'label': ""
@@ -93,14 +94,14 @@ def test_dense_input_xor_customized():
             for h in range(0, layer.output_shape[1]):
                 if l == len(model.layers) - 1:
                     set_node_attributes(the_graph, {
-                        str(l + 1) + str(h): {
+                        unique_index(l + 1, h): {
                             'shape': "square",
                             'color': "#ff0000",
                             'label': ""
                         }
                     })
                 set_edge_attributes(the_graph, {
-                    (str(l) + str(n), str(l + 1) + str(h)): {
+                    (unique_index(l, n), unique_index(l + 1, h)): {
                         'color': "#0000ff"
                     }
                 })
@@ -149,10 +150,10 @@ def test_dense_input_xor_customized_alternative():
 
     # the input has a shape of 2, same as the inner dense layer
     # set the input nodes first
-    l = "0"
+    l = 0
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            unique_index(l, n): {
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -160,10 +161,10 @@ def test_dense_input_xor_customized_alternative():
         })
 
     # set the inner dense layer then. In this case, there is only 1 inner dense layer.
-    l = "1"
+    l = 1
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            unique_index(l, n): {
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -171,26 +172,14 @@ def test_dense_input_xor_customized_alternative():
         })
 
     # set the output dense layer, which has a shape of 1
-    l = "2"
+    l = 2
     set_node_attributes(the_graph, {
-        l + "0": {  # the index
+        unique_index(l, 0): {  # the index
             'shape': "square",
             'color': "#ff0000",
             'label': ""
         }
     })
-
-    # finally set all the edges
-    # id of an edge is a tuple consisting of the ids of the 2 nodes that are connected
-    # usually the node in the upper layer comes first in the tuple
-    # because number of nodes is small in this case, all edge ids are listed for convenience
-    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
-    for edge_id in edge_ids:
-        set_edge_attributes(the_graph, {
-            edge_id: {
-                'color': "#0000ff"
-            }
-        })
 
     dg.set_graph(the_graph)
     dg.render(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
@@ -242,7 +231,7 @@ def test_dense_input_line_customized():
 
         for n in range(0, layer.input_shape[1]):
             set_node_attributes(the_graph, {
-                str(l) + str(n): {
+                unique_index(l, n): {
                     'shape': get_random_shape(),
                     'color': get_random_color(),
                     'label': ""
@@ -252,14 +241,14 @@ def test_dense_input_line_customized():
             for h in range(0, layer.output_shape[1]):
                 if l == len(model.layers) - 1:
                     set_node_attributes(the_graph, {
-                        str(l + 1) + str(h): {
+                        unique_index(l + 1, h): {
                             'shape': get_random_shape(),
                             'color': get_random_color(),
                             'label': ""
                         }
                     })
                 set_edge_attributes(the_graph, {
-                    (str(l) + str(n), str(l + 1) + str(h)): {
+                    (unique_index(l, n), unique_index(l + 1, h)): {
                         'color': get_random_color()
                     }
                 })

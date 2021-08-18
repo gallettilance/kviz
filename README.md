@@ -186,21 +186,38 @@ consists of a pyplot graph and a networkx graph. You can change the
 color and marker of the points in the pyplot graph, and attributes like 
 the color and shape of each node in the networkx graph.
 
+For the pyplot graph, you can use parameters `x_color` and `x_marker` when
+calling `render` to change the colors and shapes of the points.
+
 For the networkx graph, first, you need to use the `get_graph` method to get
 the networkx graph from `DenseGraph`. Then, you can modify the graph as needed.
-One possible way is to loop through the nodes of the graph by index and use 
+One possible way is to loop through the nodes of the graph and use 
 `set_node_attributes` and `set_edge_attributes` from `networkx`. Finally, you 
 can use the `set_graph` method to pass the modified graph to `DenseGraph` and 
 call `render` to get the visualization.
 
-For the pyplot graph, you can use parameters `x_color` and `x_marker` when 
-calling `render` to change the colors and shapes of the points.
+The index of each node is defined as
+a string, which equals the index of the layer (starts from 0) plus "_" plus the index of
+the node in that layer (starts from 0). For example, the index "0_0" means the
+first node ("0") in the first layer ("0").
+
+We provide a function called `unique_index` with which you can conveniently
+get the index of a certain node. The input to this function is the sequence of the
+layer with the node (starts from 0), and the sequence of the node in the layer (also
+starts from 0). We suggest you use this function instead of explicitly computing
+the index, because in the future we may update the way we represent a node.
+
+The index of an edge is a tuple consisting
+of 2 nodes that are connected by it. The node in the upper layer usually comes
+first. For example, ("0_0", "1_0") is the index of an edge that connects node
+"0_0" and node "1_0".
 
 Below is an example using the XOR function: (assume we already had a keras model; you can get
 one using the codes above)
 
 ```python
     from networkx import set_node_attributes, set_edge_attributes
+    from kviz.helper_functions import unique_index
     
     # "model" is already a trained keras model.
     dg = DenseGraph(model)
@@ -213,7 +230,7 @@ one using the codes above)
         layer = model.layers[l]
         for n in range(0, layer.input_shape[1]):  # get number of nodes in that layer
             set_node_attributes(the_graph, {
-                str(l) + str(n): {  # "str(l) + str(n)" is the index of the node
+                unique_index(l, n): {  # "str(l) + '_' + str(n)" is the index of the node returned by the function
                     'shape': "diamond",
                     'color': "#00ff00",
                     'label': ""
@@ -225,7 +242,7 @@ one using the codes above)
             for h in range(0, layer.output_shape[1]):
                 if l == len(model.layers) - 1:  # check if the layer is the last layer
                     set_node_attributes(the_graph, {
-                        str(l + 1) + str(h): {
+                        unique_index(l + 1, h): {
                             'shape': "square",
                             'color': "#ff0000",
                             'label': ""
@@ -235,7 +252,7 @@ one using the codes above)
                 # The index of an edge is an tuple consisting of the indexes of 
                 # the 2 nodes that are connected by it.
                 set_edge_attributes(the_graph, {
-                    (str(l) + str(n), str(l + 1) + str(h)): {
+                    (unique_index(l ,n), unique_index(l + 1, h)): {
                         'color': "#0000ff"
                     }
                 })
@@ -249,34 +266,25 @@ one using the codes above)
 
 Of course, you do not need to loop through the model if you already know the
 number of layers and number of nodes in each layer. You can directly set the 
-attributes of every node by its index using `set_node_attributes`. 
-
-The index of each node is defined as 
-a string, which equals the index of the layer (starts from 0) plus the index of
-the node in that layer (starts from 0). For example, the index "00" means the 
-first node ("0") in the first layer ("0").
-
-Similarly, you can use `set_edge_attributes` to directly set the attributes of 
-an edge, given you know its index. The index of an edge is a tuple consisting 
-of 2 nodes that are connected by it. The node in the upper layer usually comes 
-first. For example, ("00", "10") is the index of an edge that connects node 
-"00" and node "10".
+attributes of every node by its index using `set_node_attributes`
+and `set_edge_attributes`.
 
 Below is the code example. It will give the same result as the codes above.
 
 ```python
     from networkx import set_node_attributes, set_edge_attributes
+    from kviz.helper_functions import unique_index
 
     dg = DenseGraph(model)
 
     the_graph = dg.get_graph()
 
-    # the input has a shape of 2, same as the inner dense layer
+    # the input layer has a shape of 2, same as the inner dense layer
     # set the input nodes first
-    l = "0"
+    l = 0
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            unique_index(l, n): {
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -284,10 +292,10 @@ Below is the code example. It will give the same result as the codes above.
         })
 
     # set the inner dense layer then. In this case, there is only 1 inner dense layer.
-    l = "1"
+    l = 1
     for n in range(2):  # a shape of 2
         set_node_attributes(the_graph, {
-            l + str(n): {  # l + str(n) is the index
+            unique_index(l, n): {
                 'shape': "diamond",
                 'color': "#00ff00",
                 'label': ""
@@ -295,9 +303,9 @@ Below is the code example. It will give the same result as the codes above.
         })
 
     # set the output dense layer, which has a shape of 1
-    l = "2"
+    l = 2
     set_node_attributes(the_graph, {
-        l + "0": {  # the index
+        unique_index(l, 0): {
             'shape': "square",
             'color': "#ff0000",
             'label': ""
@@ -306,7 +314,8 @@ Below is the code example. It will give the same result as the codes above.
 
     # finally set all the edges
     # because number of nodes is small in this case, all edge ids are listed for convenience
-    edge_ids = [("00", "10"), ("01", "10"), ("00", "11"), ("01", "11"), ("10", "20"), ("11", "20")]
+    # however, it is suggested to use unique_index() instead
+    edge_ids = [("0_0", "1_0"), ("0_1", "1_0"), ("0_0", "1_1"), ("0_1", "1_1"), ("1_0", "2_0"), ("1_1", "2_0")]
     for edge_id in edge_ids:
         set_edge_attributes(the_graph, {
             edge_id: {
@@ -315,7 +324,7 @@ Below is the code example. It will give the same result as the codes above.
         })
 
     dg.set_graph(the_graph)
-    dg.render(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
+    dg.render(X, x_color="#FF0000", x_marker="^")
 ```
 
 The result is:
