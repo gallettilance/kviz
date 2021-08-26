@@ -55,3 +55,18 @@ def get_or_create_colormap_with_dict(color, dictionary):
         the_color_map = create_colormap(color)
         dictionary[color] = the_color_map
     return the_color_map
+
+
+def unique_index(layer, node):
+    """
+        Returns a unique index given the layer and the node.
+
+        Parameters:
+            layer: int.
+                The index of the layer (starts from 0).
+            node: int.
+                The index of the node (starts from 0).
+
+        Returns: str.
+    """
+    return str(layer) + "_" + str(node)
