@@ -230,7 +230,7 @@ one using the codes above)
         layer = model.layers[l]
         for n in range(0, layer.input_shape[1]):  # get number of nodes in that layer
             set_node_attributes(the_graph, {
-                unique_index(l, n): {  # "str(l) + '_' + str(n)" is the index of the node returned by the function
+                unique_index(l, n): {
                     'shape': "diamond",
                     'color': "#00ff00",
                     'label': ""
@@ -312,10 +312,15 @@ Below is the code example. It will give the same result as the codes above.
         }
     })
 
-    # finally set all the edges
-    # because number of nodes is small in this case, all edge ids are listed for convenience
-    # however, it is suggested to use unique_index() instead
-    edge_ids = [("0_0", "1_0"), ("0_1", "1_0"), ("0_0", "1_1"), ("0_1", "1_1"), ("1_0", "2_0"), ("1_1", "2_0")]
+    # finally set all the edges:
+    # here we have a graph of 3 layers
+    # the first 2 layers have a shape of 2, while the last layer has a shape of 1
+    # a total of 2 * 2 + 2 * 1 = 6 edges
+    # for convenience, all edges are listed below
+    edge_ids = [(unique_index(0 ,0), unique_index(1, 0)), (unique_index(0, 1), unique_index(1, 0)),
+                (unique_index(0, 0), unique_index(1, 1)), (unique_index(0, 1), unique_index(1, 1)),
+                (unique_index(1, 0), unique_index(2, 0)), (unique_index(1, 1), unique_index(2, 0))]
+    
     for edge_id in edge_ids:
         set_edge_attributes(the_graph, {
             edge_id: {
