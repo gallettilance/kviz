@@ -56,11 +56,9 @@ class DenseGraph():
 
     def __init__(self, model):
         """
-
-            Parameters:
-                model: A keras model.
-                    Since our class is called DenseGraph(), the keras model should only contain dense layers.
-
+        Parameters:
+            model: A keras model.
+                Since our class is called DenseGraph(), the keras model should only contain dense layers.
         """
         self.model = model
         self._graph = self._make_digraph()
@@ -69,11 +67,10 @@ class DenseGraph():
 
     def get_graph(self):
         """
-            DiGraph is computed based on the model provided \
-            You can access this attribute using this method
+        DiGraph is computed based on the model provided \
+        You can access this attribute using this method
 
         Returns:
-
             networkx.DiGraph
 
         """
@@ -82,16 +79,16 @@ class DenseGraph():
 
     def set_graph(self, graph=DiGraph()):
         """
-            DiGraph is computed based on the model provided \
-            you can set this attribute to a modified DiGraph \
-            using this method
+        DiGraph is computed based on the model provided \
+        you can set this attribute to a modified DiGraph \
+        using this method
 
-            Parameters:
-                graph : networkx.Graph
-                    The graph to set
+        Parameters:
+            graph : networkx.Graph
+                The graph to set
 
-            Returns:
-                None
+        Returns:
+            None
         """
         self._graph = graph
         self._graph_original_copy = self._graph.copy()
@@ -102,8 +99,7 @@ class DenseGraph():
         """
         Constructs the DiGraph
         """
-
-        graph = DiGraph(bgcolor="transparent", nodesep='1', ranksep='1')
+        graph = DiGraph(nodesep='1', ranksep='1')
 
         for l in range(len(self.model.layers)):
             layer = self.model.layers[l]
@@ -171,7 +167,7 @@ class DenseGraph():
 
     def _snap(self, filename):
         """
-            Take snapshot image of the graph
+        Take snapshot image of the graph
         """
         out = to_agraph(self._graph)
         out.layout(prog='dot')
@@ -179,43 +175,43 @@ class DenseGraph():
         return np.asarray(im.open(filename + '.png'))
 
 
-    def _snap_X(self, i, X, filename, x_color="#3498db", x_marker="o"):
+    def _snap_X(self, indexes, X, filename, x_color="#3498db", x_marker="o"):
         """
-            Take snapshot image of the input
+        Take snapshot image of the input
 
-            TODO:
-                1. this doesn't work for X in > 2 dimension
-                2. how to plot input could / should be specified by user
+        TODO:
+            1. this doesn't work for X in > 2 dimension
+            2. how to plot input could / should be specified by user
 
-            Parameters:
-                i: int.
-                    the index of the point in X
-                X: List.
-                    a list of coordinates of the points
-                filename: str.
-                    name of file to which visualization will be saved
-                x_color: str.
-                    the color (in hex form) of the points in the pyplot graph
-                x_marker: str.
-                    the shape of the points in the pyplot graph
+        Parameters:
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: List.
+                a list of coordinates of the points
+            filename: str.
+                name of file to which visualization will be saved
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
         """
         fig, ax = plt.subplots()
         ax.scatter(X[:, 0], X[:, 1], s=300, marker=x_marker, facecolors='none', edgecolors=x_color)
-        ax.scatter(X[i, 0], X[i, 1], s=300, marker=x_marker, color=x_color)
+        for i in indexes:
+            ax.scatter(X[i, 0], X[i, 1], s=300, marker=x_marker, color=x_color)
         ax.spines['bottom'].set_color(x_color)
         ax.spines['left'].set_color(x_color)
         ax.tick_params(axis='x', colors=x_color)
         ax.tick_params(axis='y', colors=x_color)
-        fig.savefig(filename + '_X.png', transparent=True)
+        fig.savefig(filename + '_X.png')
         plt.close()
         return np.asarray(im.open(filename + '_X.png'))
 
 
-    def _snap_learning(self, X, Y, snap_freq, filename):
+    def _snap_learning(self, X, Y, filename):
         """
-            Take snapshot of input with decision boundary
+        Take snapshot of input with decision boundary
         """
-
         # create a mesh to plot in
         h = .02  # step size in the mesh
         x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
@@ -229,21 +225,47 @@ class DenseGraph():
 
         fig, ax = plt.subplots(frameon=False)
         ax.scatter(X[:, 0], X[:, 1], color=colors[Y].tolist(), s=100, alpha=.9)
-        self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
         Z = self.model.predict(meshData)
         Z = np.array([int(round(z[0])) for z in Z]).reshape(xx.shape)
         ax.contourf(xx, yy, Z, alpha=.5, cmap=plt.cm.Paired)
-        fig.savefig(filename + '.png', transparent=True)
+        fig.savefig(filename + '.png')
         plt.close()
 
         return np.asarray(im.open(filename + '.png'))
 
 
+    def _snap_activated_by(self, X, neuron_layer, neuron_node, filename='activated_by'):
+        """
+        Take snapshot of input with decision boundary of the data that activates a particular neuron
+
+        Parameters:
+            X : ndarray
+                input to a Keras model
+            neuron_layer : int
+                the layer in which the neuron is located
+            neuron_node : int
+                the location of the neuron in the layer
+            filename : str
+                name of file to which visualization will be saved
+
+        Returns:
+            ndarray of the image
+        """
+        activated_by = []
+        predictions = self._int_models[neuron_layer].predict(X)
+
+        for i in range(len(X)):
+            if predictions[i][neuron_node] > 0:
+                activated_by.append(i)
+
+        return self._snap_X(activated_by, X, filename)
+
+
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
         """
-            Takes two lists of images and stacks each image in one list on top
-            of its corresponding image in the other. Then creates a GIF of the
-            list of stacked images.
+        Takes two lists of images and stacks each image in one list on top
+        of its corresponding image in the other. Then creates a GIF of the
+        list of stacked images.
         """
         stacked_imgs = []
         for i in range(len(imgs1)):
@@ -264,7 +286,6 @@ class DenseGraph():
             append_images=stacked_imgs[1:],
             loop=0,
             duration=duration,
-            transparency=255,  # prevent PIL from making background black
             disposal=2
         )
 
@@ -273,38 +294,37 @@ class DenseGraph():
 
     def _reset(self):
         """
-            Resets the graph labels, colors, fonts
+        Resets the graph labels, colors, fonts
         """
         self._graph = self._graph_original_copy.copy()
 
 
     def animate_learning(self, X, Y, epochs=100, snap_freq=10, filename='learn', duration=1000):
         """
-            Make GIF from snapshots of decision boundary at given snap_freq
+        Make GIF from snapshots of decision boundary at given snap_freq
 
-            Parameters:
+        Parameters:
+            X : ndarray
+                input to a Keras model
+            Y : ndarray
+                classes to be learned
+            epochs : int
+                number of training epochs
+            snap_freq : int
+                number of epochs after which to take a snapshot
+            filename : str
+                name of file to save as GIF
+            duration : int
+                duration in ms between images in GIF
 
-                X : ndarray
-                    input to a Keras model
-                Y : ndarray
-                    classes to be learned
-                epochs : int
-                    number of training epochs
-                snap_freq : int
-                    number of epochs after which to take a snapshot
-                filename : str
-                    name of file to save as GIF
-                duration : int
-                    duration in ms between images in GIF
-
-            Returns:
-
-                The model after learning
+        Returns:
+            The model after learning
         """
 
         images = []
-        for i in range(int(epochs / snap_freq)):
-            images.append(im.fromarray(self._snap_learning(X, Y, snap_freq, filename)))
+        for _ in range(int(epochs / snap_freq)):
+            self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
+            images.append(im.fromarray(self._snap_learning(X, Y, filename)))
 
         images[0].save(
             filename + '.gif',
@@ -313,17 +333,14 @@ class DenseGraph():
             append_images=images[1:],
             loop=0,
             duration=duration,
-            transparency=255,  # prevent PIL from making background black
             disposal=2
         )
         return self.model
 
 
-    def render(self, X=None, filename='graph', duration=1000, x_color="#3498db", x_marker="o"):
+    def animate_activations(self, X, filename='activations', duration=1000, x_color="#3498db", x_marker="o"):
         """
-        Render visualization of a Sequential Dense keras model
-
-        If X is not specified 'render()' will output the network architecture
+        Creates an animation of the graph activated by each data point
 
         Parameters:
             X : ndarray
@@ -341,19 +358,8 @@ class DenseGraph():
             None
         """
 
-        if X is None:
-            self._snap(filename)
-            return
-
         network_images = []
         input_images = []
-
-        # TODO find min / max node activation
-        vmin = min([X[:, 0].min(), X[:, 1].min()])
-        vmax = max([X[:, 0].max(), X[:, 1].max()])
-        norm = Normalize(vmin=vmin - 1, vmax=vmax + 1)
-
-        color_maps = {}
 
         predictions = [X]
         for i in range(len(self._int_models)):
@@ -363,6 +369,11 @@ class DenseGraph():
         for i in range(len(X)):
             for l in range(len(self.model.layers)):
                 layer = self.model.layers[l]
+
+                layerVals = predictions[l][i]
+                norm = Normalize(vmin=min(layerVals), vmax=max(layerVals))
+
+                color_maps = {}
 
                 for n in range(0, layer.input_shape[1]):
                     act = predictions[l][i][n]
@@ -388,11 +399,6 @@ class DenseGraph():
                                 'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
 
-                if l == len(self.model.layers) - 1:
-                    network_images.append(self._snap(filename))
-                    input_images.append(self._snap_X(i, X, filename, x_color=x_color, x_marker=x_marker))
-                    self._reset()
-
                 for h in range(0, layer.output_shape[1]):
                     if l == len(self.model.layers) - 1:
                         act = predictions[l + 1][i][h]
@@ -407,10 +413,77 @@ class DenseGraph():
                                 'color': str(rgb2hex(the_color_map(norm(act))))
                             }})
 
-                network_images.append(self._snap(filename))
-                input_images.append(self._snap_X(i, X, filename, x_color=x_color, x_marker=x_marker))
-                self._reset()
+            network_images.append(self._snap(filename))
+            input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
             self._reset()
 
         self._stack_gifs(network_images, input_images, filename, duration=duration)
+        return
+
+
+    def animate_neuron_activated_by(
+            self, X, Y,
+            neuron_layer,
+            neuron_node,
+            filename='animate_activated_by',
+            epochs=100, snap_freq=10, duration=1000):
+        """
+        Creates a visualization of the data that activates a particular neuron through the learning process
+
+        Parameters:
+            X : ndarray
+                input to a Keras model
+            Y : ndarray
+                classes to be learned
+            neuron_layer : int
+                the layer in which the neuron is located
+            neuron_node : int
+                the location of the neuron in the layer
+            epochs : int
+                number of training epochs
+            snap_freq : int
+                number of epochs after which to take a snapshot
+            filename : str
+                name of file to save as GIF
+            duration : int
+                duration in ms between images in GIF
+
+        Returns:
+
+            The model after learning
+        """
+
+        activated_by = []
+        decision_boundary = []
+
+        for _ in range(int(epochs / snap_freq)):
+            # TODO: once this is learned you can't visualize the same for other neurons
+            self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
+            self._int_models = self._get_int_models()  # re-compute intermediate models TODO make this more efficient
+            activated_by.append(self._snap_activated_by(X, neuron_layer, neuron_node, filename + 'act'))
+            decision_boundary.append(self._snap_learning(X, Y, filename + 'db'))
+
+        self._stack_gifs(activated_by, decision_boundary, filename, duration=duration)
+        return self.model
+
+
+    def render(self, filename='graph'):
+        """
+        Creates a visualization of the graph for a Sequential Dense keras model
+
+        Parameters:
+            filename : str
+                name of file to which visualization will be saved
+            duration : int
+                duration in ms between images in GIF
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
+
+        Returns:
+            None
+        """
+
+        self._snap(filename)
         return

@@ -107,7 +107,7 @@ def test_dense_input_xor_customized():
                 })
 
     dg.set_graph(the_graph)
-    dg.render(X, filename='test_input_xor_customized', x_color="#FF0000", x_marker="^")
+    dg.animate_activations(X, filename='test_input_xor_customized', x_color="#FF0000", x_marker="^")
 
 
 def test_dense_input_xor_customized_alternative():
@@ -182,7 +182,7 @@ def test_dense_input_xor_customized_alternative():
     })
 
     dg.set_graph(the_graph)
-    dg.render(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
+    dg.animate_activations(X, filename='test_input_xor_customized_alternative', x_color="#FF0000", x_marker="^")
 
 
 def test_dense_input_line_customized():
@@ -255,4 +255,4 @@ def test_dense_input_line_customized():
 
     dg.set_graph(the_graph)
 
-    dg.render(X, filename='test_input_line_customized', duration=300)
+    dg.animate_activations(X, filename='test_input_line_customized', duration=300)
