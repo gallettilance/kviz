@@ -125,7 +125,7 @@ You can visualize which nodes activate in the network as a function of a set of 
     history = model.fit(X, Y, batch_size=4, epochs=1000)
 
     dg = DenseGraph(model)
-    dg.render(X)
+    dg.animate_activations(X)
 ```
 
 Produces the following decision boundary (visualized using `matplotlib`):
@@ -160,7 +160,7 @@ The darker the node the higher the activation is at that node.
     history = model.fit(X, Y)
 
     dg = DenseGraph(model)
-    dg.render(X, duration=.3)
+    dg.animate_activations(X, duration=.3)
 ```
 
 Produces the following decision boundary (visualized using `matplotlib`):
@@ -261,7 +261,7 @@ one using the codes above)
     dg.set_graph(the_graph)
     
     # Get the visualization & set the color and marker in the pyplot graph.
-    dg.render(X, x_color="#FF0000", x_marker="^")
+    dg.animate_activations(X, x_color="#FF0000", x_marker="^")
 ```
 
 Of course, you do not need to loop through the model if you already know the
@@ -329,7 +329,7 @@ Below is the code example. It will give the same result as the codes above.
         })
 
     dg.set_graph(the_graph)
-    dg.render(X, x_color="#FF0000", x_marker="^")
+    dg.animate_activations(X, x_color="#FF0000", x_marker="^")
 ```
 
 The result is:
