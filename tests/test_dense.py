@@ -118,7 +118,7 @@ def test_animate_learning():
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
     dg = DenseGraph(model)
-    dg.animate_learning(X, Y, filename='test_animate')
+    dg.animate_learning(X, Y, filename='test_animate', verbose=0, batch_size=50)
 
 
 def test_activated_by():
@@ -137,4 +137,4 @@ def test_activated_by():
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
     dg = DenseGraph(model)
-    dg.animate_neuron_activated_by(X, Y, 0, 1, filename="test_activated_by", duration=100, epochs=1500)
+    dg.animate_neuron_activated_by(X, Y, 0, 1, filename="test_activated_by", duration=100, epochs=1500, batch_size=100)

@@ -299,7 +299,7 @@ class DenseGraph():
         self._graph = self._graph_original_copy.copy()
 
 
-    def animate_learning(self, X, Y, epochs=100, snap_freq=10, filename='learn', duration=1000):
+    def animate_learning(self, X, Y, snap_freq=10, filename='learn', duration=1000, **kwargs):
         """
         Make GIF from snapshots of decision boundary at given snap_freq
 
@@ -308,22 +308,28 @@ class DenseGraph():
                 input to a Keras model
             Y : ndarray
                 classes to be learned
-            epochs : int
-                number of training epochs
             snap_freq : int
                 number of epochs after which to take a snapshot
             filename : str
                 name of file to save as GIF
             duration : int
                 duration in ms between images in GIF
+            **kwargs : other params
+                paramter inputs to model.fit
 
         Returns:
             The model after learning
         """
 
         images = []
+        if 'epochs' in kwargs:
+            epochs = kwargs['epochs']
+            kwargs.pop('epochs', None)
+        else:
+            epochs = snap_freq
+
         for _ in range(int(epochs / snap_freq)):
-            self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
+            self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             images.append(im.fromarray(self._snap_learning(X, Y, filename)))
 
         images[0].save(
@@ -335,6 +341,7 @@ class DenseGraph():
             duration=duration,
             disposal=2
         )
+        self._int_models = self._get_int_models()
         return self.model
 
 
@@ -426,7 +433,7 @@ class DenseGraph():
             neuron_layer,
             neuron_node,
             filename='animate_activated_by',
-            epochs=100, snap_freq=10, duration=1000):
+            snap_freq=10, duration=1000, **kwargs):
         """
         Creates a visualization of the data that activates a particular neuron through the learning process
 
@@ -439,14 +446,14 @@ class DenseGraph():
                 the layer in which the neuron is located
             neuron_node : int
                 the location of the neuron in the layer
-            epochs : int
-                number of training epochs
             snap_freq : int
                 number of epochs after which to take a snapshot
             filename : str
                 name of file to save as GIF
             duration : int
                 duration in ms between images in GIF
+            **kwargs : other params
+                paramter inputs to model.fit
 
         Returns:
 
@@ -455,10 +462,15 @@ class DenseGraph():
 
         activated_by = []
         decision_boundary = []
+        if 'epochs' in kwargs:
+            epochs = kwargs['epochs']
+            kwargs.pop('epochs', None)
+        else:
+            epochs = snap_freq
 
         for _ in range(int(epochs / snap_freq)):
             # TODO: once this is learned you can't visualize the same for other neurons
-            self.model.fit(X, Y, batch_size=150, epochs=snap_freq)
+            self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # re-compute intermediate models TODO make this more efficient
             activated_by.append(self._snap_activated_by(X, neuron_layer, neuron_node, filename + 'act'))
             decision_boundary.append(self._snap_learning(X, Y, filename + 'db'))
