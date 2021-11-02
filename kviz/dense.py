@@ -285,8 +285,7 @@ class DenseGraph():
             save_all=True,
             append_images=stacked_imgs[1:],
             loop=0,
-            duration=duration,
-            disposal=2
+            duration=duration
         )
 
         return
@@ -332,8 +331,7 @@ class DenseGraph():
             save_all=True,
             append_images=images[1:],
             loop=0,
-            duration=duration,
-            disposal=2
+            duration=duration
         )
         return self.model
 

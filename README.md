@@ -15,7 +15,7 @@ Visualization library for Keras Neural Networks
 On Fedora
 
 ```
-    sudo dnf install graphviz graphviz-devel
+    sudo dnf install python3-devel graphviz graphviz-devel
 ```
 
 On Ubuntu
