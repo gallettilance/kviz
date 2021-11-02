@@ -62,7 +62,7 @@ You can visualize the learned decision boundary of your model as such:
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
     dg = DenseGraph(model)
-    dg.animate_learning(X, Y, epochs=2000, snap_freq=20, duration=300)
+    dg.animate_learning(X, Y, snap_freq=20, duration=300, batch_size=4, epochs=1000, verbose=0)
 ```
 
 Which produces the following GIF:
@@ -122,7 +122,7 @@ You can visualize which nodes activate in the network as a function of a set of 
         [1,1]])
     Y = np.array([x[0]^x[1] for x in X]) # Xor function
 
-    history = model.fit(X, Y, batch_size=4, epochs=1000)
+    history = model.fit(X, Y, batch_size=4, epochs=1000, verbose=0)
 
     dg = DenseGraph(model)
     dg.animate_activations(X)
