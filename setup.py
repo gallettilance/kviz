@@ -12,10 +12,10 @@ tests_require = [
 setup(
   name='kviz',
   packages=['kviz'],
-  version='0.0.6',
+  version='0.0.7',
   description='A Library for visualizing keras neural networks',
   install_requires=[
-    'tf-nightly',
+    'tensorflow',
     'networkx',
     'pygraphviz',
     'matplotlib',
