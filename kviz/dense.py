@@ -47,7 +47,7 @@ class DenseGraph():
                 you can set this attribute to a modified DiGraph
                 using this method
 
-            render :
+            animate_activations :
                 Can print the network architecture or, if input
                 is provided, show a GIF of the activations of each
                 Neuron based on the input provided.
@@ -280,7 +280,7 @@ class DenseGraph():
             stacked_imgs.append(stacked)
 
         stacked_imgs[0].save(
-            filename + '_stacked.gif',
+            filename + '.gif',
             optimize=False,  # important for transparent background
             save_all=True,
             append_images=stacked_imgs[1:],
