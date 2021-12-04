@@ -476,7 +476,7 @@ class DenseGraph():
         self._stack_gifs(activated_by, decision_boundary, filename, duration=duration)
         return self.model
 
-    def animate_regression(self,  X, filename='activations', duration=1000, x_color="#3498db", x_marker="o",
+    def animate_regression(self, X, filename='activations', duration=1000, x_color="#3498db", x_marker="o",
                            rounded=True, roundedN=2):
         """
         Creates an animation of the graph activated by each data point, used for regression
