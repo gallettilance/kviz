@@ -476,12 +476,14 @@ class DenseGraph():
         self._stack_gifs(activated_by, decision_boundary, filename, duration=duration)
         return self.model
 
-
-    def render(self, filename='graph'):
+    def animate_regression(self,  X, filename='activations', duration=1000, x_color="#3498db", x_marker="o",
+                           rounded=True, roundedN=2):
         """
-        Creates a visualization of the graph for a Sequential Dense keras model
+        Creates an animation of the graph activated by each data point, used for regression
 
         Parameters:
+            X : ndarray
+                input to a Keras model
             filename : str
                 name of file to which visualization will be saved
             duration : int
@@ -490,6 +492,101 @@ class DenseGraph():
                 the color (in hex form) of the points in the pyplot graph
             x_marker: str.
                 the shape of the points in the pyplot graph
+            rounded: bool.
+                whether to round the values
+            roundedN: int
+                the number of decimal places for the rounded values; will be ignored if rounded is false
+
+        Returns:
+            None
+        """
+        network_images = []
+        input_images = []
+
+        color_maps = {}
+
+        predictions = [X]
+        for i in range(len(self._int_models)):
+            predictions.append(self._int_models[i].predict(X))
+        predictions.append(self.model.predict(X))
+
+        for i in range(len(X)):
+            for l in range(len(self.model.layers)):
+                layer = self.model.layers[l]
+
+                layerVals = predictions[l][i]
+                vmax = max(layerVals)
+                # multiple here to make the difference of color more obvious
+                norm = Normalize(vmin=min(layerVals), vmax=vmax)
+
+                for n in range(0, layer.input_shape[1]):
+                    act = predictions[l][i][n]
+
+                    index = unique_index(l, n)
+                    the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
+
+                    if rounded:
+                        label = str(round(act, roundedN))
+                    else:
+                        label = str(act)
+
+                    if l == 0:
+                        # since this is regression, the first layer is always the input data and they do not have colors
+                        set_node_attributes(self._graph, {
+                            index: {
+                                'label': label,
+                                'fixedsize': True  # important for graphviz
+                            }})
+                    else:
+                        if act == 0:  # no color for 0
+                            color = "#ffffff"
+                        else:
+                            # minus here, so the higher value has a darker color
+                            color = str(rgb2hex(the_color_map(norm(vmax - act))))
+
+                        set_node_attributes(self._graph, {
+                            index: {
+                                'label': label,
+                                'style': 'filled',
+                                'color': color,
+                                'fixedsize': True
+                            }})
+
+                if l == len(self.model.layers) - 1:
+                    network_images.append(self._snap(filename))
+                    input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
+
+                    for h in range(0, layer.output_shape[1]):
+                        act = predictions[l + 1][i][h]
+
+                        if rounded:
+                            label = str(round(act, roundedN))
+                        else:
+                            label = str(act)
+
+                        index = unique_index(l + 1, h)
+
+                        set_node_attributes(self._graph, {
+                            index: {
+                                'label': label,
+                                'fixedsize': True
+                            }})
+
+                network_images.append(self._snap(filename))
+                input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
+
+            self._reset()
+
+        self._stack_gifs(network_images, input_images, filename, duration=duration)
+        return
+
+    def render(self, filename='graph'):
+        """
+        Creates a visualization of the graph for a Sequential Dense keras model
+
+        Parameters:
+            filename : str
+                name of file to which visualization will be saved
 
         Returns:
             None
