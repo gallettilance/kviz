@@ -260,6 +260,57 @@ class DenseGraph():
 
         return self._snap_X(activated_by, X, filename)
 
+    def _snap_regression_basic(self, indexes, X, pred, x_color="#3498db", x_marker="o"):
+        """
+
+        Parameters:
+            indexes:
+            X:
+            pred:
+            x_color:
+            x_marker:
+
+        Returns:
+
+        """
+        temp_filename = 'snap_regression_basic_temp.png'
+        fig, ax = plt.subplots()
+        ax.scatter(X, pred, marker=x_marker, facecolors='none', edgecolors=x_color)
+        for i in indexes:
+            ax.scatter(X[i], pred[i], marker=x_marker, color=x_color)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Pred')
+        fig.savefig(temp_filename)
+        plt.close()
+        return np.asarray(im.open(temp_filename))
+
+    def _snap_regression_3d(self, indexes, X, pred, x_color="#3498db", x_marker="o"):
+        """
+
+        Parameters:
+            indexes:
+            X:
+            pred:
+            x_color:
+            x_marker:
+
+        Returns:
+
+        """
+        temp_filename = 'snap_regression_3d_temp.png'
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(X[:, 0], X[:, 1], pred, marker=x_marker, facecolors='none', edgecolors=x_color)
+        for i in indexes:
+            ax.scatter(X[i, 0], X[i, 1], pred[i], marker=x_marker, color=x_color)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Pred')
+        fig.savefig(temp_filename)
+        plt.close()
+        return np.asarray(im.open(temp_filename))
 
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
         """
@@ -476,6 +527,26 @@ class DenseGraph():
         self._stack_gifs(activated_by, decision_boundary, filename, duration=duration)
         return self.model
 
+    def _update_input_images_for_regression(self, input_images, indexes, X, pred, x_color, x_marker):
+        """
+
+        Parameters:
+            indexes:
+            X:
+            pred:
+            x_color:
+            x_marker:
+
+        Returns:
+
+        """
+        if len(X[0]) == 2:  # the input is 2d
+            input_images.append(self._snap_regression_3d(indexes, X, pred,
+                                                         x_color=x_color, x_marker=x_marker))
+        elif len(X[0]) == 1:  # the input is 1d
+            input_images.append(self._snap_regression_basic(indexes, X, pred,
+                                                            x_color=x_color, x_marker=x_marker))
+
     def animate_regression(self, X, filename='activations', duration=1000, x_color="#3498db", x_marker="o",
                            rounded=True, roundedN=2):
         """
@@ -552,9 +623,9 @@ class DenseGraph():
                                 'fixedsize': True
                             }})
 
-                if l == len(self.model.layers) - 1:
+                if l == len(self.model.layers) - 1:  # need to additionally show the output
                     network_images.append(self._snap(filename))
-                    input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
+                    self._update_input_images_for_regression(input_images, [i], X, predictions[-1], x_color, x_marker)
 
                     for h in range(0, layer.output_shape[1]):
                         act = predictions[l + 1][i][h]
@@ -573,7 +644,7 @@ class DenseGraph():
                             }})
 
                 network_images.append(self._snap(filename))
-                input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
+                self._update_input_images_for_regression(input_images, [i], X, predictions[-1], x_color, x_marker)
 
             self._reset()
 

@@ -5,7 +5,7 @@ from tensorflow.keras import layers
 from kviz.dense import DenseGraph
 
 
-def test_regression_simple():
+def test_regression_2dx():
     X = np.array([
         [1, 2],
         [3, 4],
@@ -20,11 +20,31 @@ def test_regression_simple():
     model.add(layers.Dense(4, activation=ACTIVATION))
     model.add(layers.Dense(1, activation=ACTIVATION))
 
+    optimizer = keras.optimizers.RMSprop(0.03)
+
+    model.compile(loss="mse", optimizer=optimizer, metrics=['mae', 'mse'])
+
+    model.fit(X, Y, epochs=100)
+
+    dg = DenseGraph(model)
+    dg.animate_regression(X, filename="test_regression_2dx")
+
+
+def test_regression_1dx():
+    X = np.array([[2], [4], [6], [8]])
+    Y = np.array([2 * x[0] + 1 for x in X])
+
+    ACTIVATION = "relu"
+    model = keras.models.Sequential()
+    model.add(layers.Dense(3, input_shape=(1, ), activation=ACTIVATION))
+    model.add(layers.Dense(3, activation=ACTIVATION))
+    model.add(layers.Dense(1, activation=ACTIVATION))
+
     optimizer = keras.optimizers.RMSprop(0.025)
 
     model.compile(loss="mse", optimizer=optimizer, metrics=['mae', 'mse'])
 
-    model.fit(X, Y, batch_size=4, epochs=100)
+    model.fit(X, Y, epochs=50)
 
     dg = DenseGraph(model)
-    dg.animate_regression(X, filename="test_regression_simple")
+    dg.animate_regression(X, filename="test_regression_1dx")
