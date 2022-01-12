@@ -262,15 +262,22 @@ class DenseGraph():
 
     def _snap_regression_basic(self, indexes, X, pred, x_color="#3498db", x_marker="o"):
         """
+        Take snapshot image of the input for regression with 1d input
 
         Parameters:
-            indexes:
-            X:
-            pred:
-            x_color:
-            x_marker:
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: list of int
+                a list of the inputs; should be an 1d array
+            pred: list of int.
+                the prediction
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
 
         Returns:
+            An numpy array
 
         """
         temp_filename = 'snap_regression_basic_temp.png'
@@ -287,15 +294,22 @@ class DenseGraph():
 
     def _snap_regression_3d(self, indexes, X, pred, x_color="#3498db", x_marker="o"):
         """
+        Take snapshot image of the input for regression with 2d input; the returned graph will be a 3d one
 
         Parameters:
-            indexes:
-            X:
-            pred:
-            x_color:
-            x_marker:
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: List.
+                a list of coordinates of the points; should be a 2d array
+            pred: list of int.
+                the prediction
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
 
         Returns:
+            An numpy array
 
         """
         temp_filename = 'snap_regression_3d_temp.png'
@@ -341,6 +355,36 @@ class DenseGraph():
 
         return
 
+    def _convert_gif(self, imgs, filename, duration):
+        """
+        Convert a list of images to a gif.
+
+        Args:
+            imgs: List.
+                a list of images
+            filename: str.
+                the filename for the gif
+            duration: int
+                duration in ms between images in GIF
+
+        Returns:
+            None
+
+        """
+        stacked_images = []
+        for img in imgs:
+            stacked_images.append(im.fromarray(np.asarray(img)))
+
+        stacked_images[0].save(
+            filename + '.gif',
+            optimize=False,
+            save_all=True,
+            append_images=stacked_images[1:],
+            loop=0,
+            duration=duration
+        )
+
+        return
 
     def _reset(self):
         """
@@ -529,16 +573,24 @@ class DenseGraph():
 
     def _update_input_images_for_regression(self, input_images, indexes, X, pred, x_color, x_marker):
         """
+        Updates the input images for regression. Should only be called by animate_regression().
 
         Parameters:
-            indexes:
-            X:
-            pred:
-            x_color:
-            x_marker:
+            input_images: array.
+                each element of this array should be a matrix representing an image.
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: List.
+                list of input points
+            pred: list of int
+                the prediction
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
 
         Returns:
-
+            None
         """
         if len(X[0]) == 2:  # the input is 2d
             input_images.append(self._snap_regression_3d(indexes, X, pred,
@@ -648,7 +700,10 @@ class DenseGraph():
 
             self._reset()
 
-        self._stack_gifs(network_images, input_images, filename, duration=duration)
+        if len(X[0]) in [1, 2]:
+            self._stack_gifs(network_images, input_images, filename, duration=duration)
+        else:
+            self._convert_gif(network_images, filename, duration)
         return
 
     def render(self, filename='graph'):
