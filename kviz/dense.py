@@ -158,7 +158,10 @@ class DenseGraph():
                     input_dim=int_layer.input_shape[1],
                     activation=int_layer.activation)
                 )
-                int_model.layers[prev_layer].set_weights(int_layer.get_weights())
+                int_weights = int_layer.get_weights()
+                keras.backend.set_value(int_model.layers[prev_layer].weights[0], int_weights[0])
+                if len(int_weights) > 1:
+                    keras.backend.set_value(int_model.layers[prev_layer].weights[1], int_weights[1])
             int_model.compile(loss=self.model.loss)
             intermediate_models.append(int_model)
 

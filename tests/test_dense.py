@@ -10,7 +10,7 @@ from kviz.dense import DenseGraph
 def test_dense_no_input():
     ACTIVATION = "sigmoid"
     model = keras.models.Sequential()
-    model.add(layers.Dense(2, input_dim=2))
+    model.add(layers.Dense(2, input_dim=2, use_bias=False))
     model.add(layers.Dense(1, activation=ACTIVATION))
     model.compile(loss="binary_crossentropy")
 
