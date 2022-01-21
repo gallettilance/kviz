@@ -260,6 +260,71 @@ class DenseGraph():
 
         return self._snap_X(activated_by, X, filename)
 
+    def _snap_regression_basic(self, indexes, X, pred, x_color="#3498db", x_marker="o"):
+        """
+        Take snapshot image of the input for regression with 1d input
+
+        Parameters:
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: list of int
+                a list of the inputs; should be an 1d array
+            pred: list of int.
+                the prediction
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
+
+        Returns:
+            An numpy array
+
+        """
+        temp_filename = 'snap_regression_basic_temp.png'
+        fig, ax = plt.subplots()
+        ax.scatter(X, pred, marker=x_marker, facecolors='none', edgecolors=x_color)
+        for i in indexes:
+            ax.scatter(X[i], pred[i], marker=x_marker, color=x_color)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Pred')
+        fig.savefig(temp_filename)
+        plt.close()
+        return np.asarray(im.open(temp_filename))
+
+    def _snap_regression_3d(self, indexes, X, pred, x_color="#3498db", x_marker="o"):
+        """
+        Take snapshot image of the input for regression with 2d input; the returned graph will be a 3d one
+
+        Parameters:
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: List.
+                a list of coordinates of the points; should be a 2d array
+            pred: list of int.
+                the prediction
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
+
+        Returns:
+            An numpy array
+
+        """
+        temp_filename = 'snap_regression_3d_temp.png'
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(X[:, 0], X[:, 1], pred, marker=x_marker, facecolors='none', edgecolors=x_color)
+        for i in indexes:
+            ax.scatter(X[i, 0], X[i, 1], pred[i], marker=x_marker, color=x_color)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Pred')
+        fig.savefig(temp_filename)
+        plt.close()
+        return np.asarray(im.open(temp_filename))
 
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
         """
@@ -290,6 +355,36 @@ class DenseGraph():
 
         return
 
+    def _convert_gif(self, imgs, filename, duration):
+        """
+        Convert a list of images to a gif.
+
+        Args:
+            imgs: List.
+                a list of images
+            filename: str.
+                the filename for the gif
+            duration: int
+                duration in ms between images in GIF
+
+        Returns:
+            None
+
+        """
+        stacked_images = []
+        for img in imgs:
+            stacked_images.append(im.fromarray(np.asarray(img)))
+
+        stacked_images[0].save(
+            filename + '.gif',
+            optimize=False,
+            save_all=True,
+            append_images=stacked_images[1:],
+            loop=0,
+            duration=duration
+        )
+
+        return
 
     def _reset(self):
         """
@@ -476,12 +571,42 @@ class DenseGraph():
         self._stack_gifs(activated_by, decision_boundary, filename, duration=duration)
         return self.model
 
-
-    def render(self, filename='graph'):
+    def _update_input_images_for_regression(self, input_images, indexes, X, pred, x_color, x_marker):
         """
-        Creates a visualization of the graph for a Sequential Dense keras model
+        Updates the input images for regression. Should only be called by animate_regression().
 
         Parameters:
+            input_images: array.
+                each element of this array should be a matrix representing an image.
+            indexes: list of int.
+                list of the indexes of the point in X that should be bold
+            X: List.
+                list of input points
+            pred: list of int
+                the prediction
+            x_color: str.
+                the color (in hex form) of the points in the pyplot graph
+            x_marker: str.
+                the shape of the points in the pyplot graph
+
+        Returns:
+            None
+        """
+        if len(X[0]) == 2:  # the input is 2d
+            input_images.append(self._snap_regression_3d(indexes, X, pred,
+                                                         x_color=x_color, x_marker=x_marker))
+        elif len(X[0]) == 1:  # the input is 1d
+            input_images.append(self._snap_regression_basic(indexes, X, pred,
+                                                            x_color=x_color, x_marker=x_marker))
+
+    def animate_regression(self, X, filename='activations', duration=1000, x_color="#3498db", x_marker="o",
+                           rounded=True, roundedN=2):
+        """
+        Creates an animation of the graph activated by each data point, used for regression
+
+        Parameters:
+            X : ndarray
+                input to a Keras model
             filename : str
                 name of file to which visualization will be saved
             duration : int
@@ -490,6 +615,104 @@ class DenseGraph():
                 the color (in hex form) of the points in the pyplot graph
             x_marker: str.
                 the shape of the points in the pyplot graph
+            rounded: bool.
+                whether to round the values
+            roundedN: int
+                the number of decimal places for the rounded values; will be ignored if rounded is false
+
+        Returns:
+            None
+        """
+        network_images = []
+        input_images = []
+
+        color_maps = {}
+
+        predictions = [X]
+        for i in range(len(self._int_models)):
+            predictions.append(self._int_models[i].predict(X))
+        predictions.append(self.model.predict(X))
+
+        for i in range(len(X)):
+            for l in range(len(self.model.layers)):
+                layer = self.model.layers[l]
+
+                layerVals = predictions[l][i]
+                vmax = max(layerVals)
+                # multiple here to make the difference of color more obvious
+                norm = Normalize(vmin=min(layerVals), vmax=vmax)
+
+                for n in range(0, layer.input_shape[1]):
+                    act = predictions[l][i][n]
+
+                    index = unique_index(l, n)
+                    the_color_map = get_or_create_colormap_with_dict(self._graph.nodes[index]["color"], color_maps)
+
+                    if rounded:
+                        label = str(round(act, roundedN))
+                    else:
+                        label = str(act)
+
+                    if l == 0:
+                        # since this is regression, the first layer is always the input data and they do not have colors
+                        set_node_attributes(self._graph, {
+                            index: {
+                                'label': label,
+                                'fixedsize': True  # important for graphviz
+                            }})
+                    else:
+                        if act == 0:  # no color for 0
+                            color = "#ffffff"
+                        else:
+                            # minus here, so the higher value has a darker color
+                            color = str(rgb2hex(the_color_map(norm(vmax - act))))
+
+                        set_node_attributes(self._graph, {
+                            index: {
+                                'label': label,
+                                'style': 'filled',
+                                'color': color,
+                                'fixedsize': True
+                            }})
+
+                if l == len(self.model.layers) - 1:  # need to additionally show the output
+                    network_images.append(self._snap(filename))
+                    self._update_input_images_for_regression(input_images, [i], X, predictions[-1], x_color, x_marker)
+
+                    for h in range(0, layer.output_shape[1]):
+                        act = predictions[l + 1][i][h]
+
+                        if rounded:
+                            label = str(round(act, roundedN))
+                        else:
+                            label = str(act)
+
+                        index = unique_index(l + 1, h)
+
+                        set_node_attributes(self._graph, {
+                            index: {
+                                'label': label,
+                                'fixedsize': True
+                            }})
+
+                network_images.append(self._snap(filename))
+                self._update_input_images_for_regression(input_images, [i], X, predictions[-1], x_color, x_marker)
+
+            self._reset()
+
+        if len(X[0]) in [1, 2]:
+            self._stack_gifs(network_images, input_images, filename, duration=duration)
+        else:
+            self._convert_gif(network_images, filename, duration)
+        return
+
+    def render(self, filename='graph'):
+        """
+        Creates a visualization of the graph for a Sequential Dense keras model
+
+        Parameters:
+            filename : str
+                name of file to which visualization will be saved
 
         Returns:
             None
