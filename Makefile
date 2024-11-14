@@ -4,7 +4,7 @@ build:: ; pip3 install --upgrade build
 build:: ; python3 -m build
 
 release:: ; pip3 install --upgrade twine
-release:: ; python3 -m twine upload --repository pypi dist/*
+release:: ; python3 -m twine upload dist/*
 
 clean:: ; rm -f test_*.gif
 clean:: ; rm -f test_*.png

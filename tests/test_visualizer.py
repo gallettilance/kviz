@@ -4,7 +4,7 @@ from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import sklearn.datasets as datasets
 
-from kviz.dense import DenseGraph
+from kviz.visualizer import Visualizer
 
 
 def test_dense_no_input():
@@ -14,7 +14,7 @@ def test_dense_no_input():
     model.add(layers.Dense(1, activation=ACTIVATION))
     model.compile(loss="binary_crossentropy")
 
-    dg = DenseGraph(model)
+    dg = Visualizer(model)
     dg.render(filename='test_no_input')
     g1 = dg.get_graph()
     dg.set_graph(g1)
@@ -56,8 +56,8 @@ def test_dense_input_xor():
 
     fig.savefig("test_model_xor.png")
 
-    dg = DenseGraph(model)
-    dg.animate_activations(X, filename='test_input_xor')
+    dg = Visualizer(model)
+    dg.view_activations_for(X, filename='test_input_xor')
 
 
 def test_dense_input_line():
@@ -98,8 +98,8 @@ def test_dense_input_line():
 
     fig.savefig("test_model_line.png")
 
-    dg = DenseGraph(model)
-    dg.animate_activations(X, filename='test_input_line', duration=300)
+    dg = Visualizer(model)
+    dg.view_activations_for(X, filename='test_input_line', duration=300)
 
 
 def test_animate_learning():
@@ -117,24 +117,5 @@ def test_animate_learning():
     X = np.array(list(filter(lambda x: x[0]**2 + x[1]**2 < 1 or x[0]**2 + x[1]**2 > 1.5, t)))
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
-    dg = DenseGraph(model)
-    dg.animate_learning(X, Y, filename='test_animate', verbose=0, batch_size=50)
-
-
-def test_activated_by():
-    ACTIVATION = "sigmoid"
-
-    def custom_activation(x):
-        return x**2
-
-    model = keras.models.Sequential()
-    model.add(layers.Dense(3, input_dim=2, activation=custom_activation))
-    model.add(layers.Dense(1, activation=ACTIVATION))
-    model.compile(loss="binary_crossentropy")
-
-    t, _ = datasets.make_blobs(n_samples=100, centers=[[0, 0]], cluster_std=1, random_state=2)
-    X = np.array(list(filter(lambda x: x[0]**2 + x[1]**2 < 1 or x[0]**2 + x[1]**2 > 1.5, t)))
-    Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
-
-    dg = DenseGraph(model)
-    dg.animate_neuron_activated_by(X, Y, 0, 1, filename="test_activated_by", duration=100, epochs=1500, batch_size=100)
+    dg = Visualizer(model)
+    dg.fit(X, Y, filename='test_animate', verbose=0, batch_size=50)
