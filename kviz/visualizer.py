@@ -342,10 +342,10 @@ class Visualizer():
 
         for _ in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
-            self._int_models = self._get_int_models()
+            # self._int_models = self._get_int_models() TODO: make this function more efficient
             images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
 
-        self._convert_gif(images, filename + 'gif', duration)
+        self._convert_gif(images, filename, duration)
         return self.model
 
 
@@ -425,7 +425,7 @@ class Visualizer():
             input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
             self._reset()
 
-        self._convert_gif(network_images, filename, duration)
+        self._stack_gifs(network_images, input_images, filename, duration)
         return
 
 
