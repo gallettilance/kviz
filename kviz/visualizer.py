@@ -27,6 +27,14 @@ from networkx.drawing.nx_agraph import to_agraph
 import tensorflow.keras as keras
 
 
+COLORS = np.array(['purple', 'blue'])
+tuples = list(zip(
+    map(plt.Normalize(0, 1), [0, .5, 1]),
+    [COLORS[0], 'white', COLORS[1]])
+)
+CMAP = LinearSegmentedColormap.from_list("", tuples, 100)
+
+
 class Visualizer():
     """
         Class for creating and rendering visualization of Keras
@@ -156,17 +164,8 @@ class Visualizer():
 
         for l in range(len(self.model.layers)):
             int_model = keras.Sequential()
-            inp = self.model.layers[0]._input_shape_arg[0]
-
             for prev_layer in range(l + 1):
-                int_layer = self.model.layers[prev_layer]
-                int_model.add(keras.layers.Dense(
-                    int_layer.units,
-                    input_dim=inp,
-                    activation=int_layer.activation)
-                )
-                int_model.layers[prev_layer].set_weights(int_layer.get_weights())
-                inp = int_layer.units
+                int_model.add(self.model.layers[prev_layer])
             int_model.compile(loss=self.model.loss)
             intermediate_models.append(int_model)
 
@@ -228,14 +227,10 @@ class Visualizer():
                              np.arange(y_min, y_max, h))
         meshData = np.c_[xx.ravel(), yy.ravel()]
 
-        # TODO catch max number of classes
-        colors = np.array([x for x in 'bgrcmyk'])
-
         fig, ax = plt.subplots(frameon=False)
-        ax.scatter(X[:, 0], X[:, 1], color=colors[Y].tolist(), s=100, alpha=.9)
-        Z = self.model.predict(meshData)
-        Z = np.array([int(round(z[0])) for z in Z]).reshape(xx.shape)
-        ax.contourf(xx, yy, Z, alpha=.5, cmap=plt.cm.Paired)
+        ax.scatter(X[:, 0], X[:, 1], color=COLORS[Y].tolist(), s=100, alpha=.9)
+        Z = self.model.predict(meshData).reshape(xx.shape)
+        ax.contourf(xx, yy, Z, alpha=.4, cmap=CMAP)
         fig.savefig(filename + '.png')
         plt.close()
 
@@ -342,7 +337,7 @@ class Visualizer():
 
         for _ in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
-            # self._int_models = self._get_int_models() TODO: make this function more efficient
+            self._int_models = self._get_int_models()  # TODO: make this function more efficient
             images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
 
         self._convert_gif(images, filename, duration)
@@ -368,12 +363,6 @@ class Visualizer():
         Returns:
             None
         """
-
-        cvals = [0, .5, 1]
-        colors = ['purple', 'white', 'blue']
-        norm = plt.Normalize(min(cvals), max(cvals))
-        tuples = list(zip(map(norm, cvals), colors))
-        CMAP = LinearSegmentedColormap.from_list("", tuples, 100)
 
         cvals = [0, 1]
         colors = ['white', 'green']
