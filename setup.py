@@ -7,6 +7,7 @@ tests_require = [
   'pytest',
   'pytest-cov',
   'testfixtures',
+  'scikit-learn',
 ]
 
 setup(
@@ -19,7 +20,7 @@ setup(
     'networkx',
     'pygraphviz',
     'matplotlib',
-    'imageio'
+    
   ],
   python_requires='>=3.9, <4',
   setup_requires=['pytest-runner'],

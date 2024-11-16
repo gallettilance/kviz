@@ -71,6 +71,18 @@ Which produces the following GIF:
     <img src="https://github.com/gallettilance/kviz/blob/master/examples/circle_relu_model.gif?raw=true"/>
 </p>
 
+To view the learned decision boundary of your model in the feature space as well, set the view_feature_space flag to True as such:
+**(please note this can only be done for neural networks with one hidden layer)**  
+```python
+    viz = Visualizer(model)
+    viz.fit(X, Y, snap_freq=20, duration=300, view_feature_space=True, batch_size=4, epochs=1000, verbose=0)
+```
+
+Which produces the two GIFs side by side:
+<p align="center">
+    <img src="https://github.com/gallettilance/kviz/blob/master/examples/feature_space.gif?raw=true"/>
+</p>
+
 We can try different activation functions, network architectures, etc. to see what works
 best. For example, from looking at the GIF we can see that the neural net is trying to
 learn a decision boundary that is a combination of two straight lines. Clearly this is

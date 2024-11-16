@@ -17,14 +17,17 @@ Copyright 2024 Lance Galletti
 
 import numpy as np
 from PIL import Image as im
+import os
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex, LinearSegmentedColormap
+
 
 from networkx import DiGraph, set_node_attributes
 from networkx.drawing.nx_agraph import to_agraph
 
 import tensorflow.keras as keras
+
 
 
 COLORS = np.array(['purple', 'blue'])
@@ -252,6 +255,49 @@ class Visualizer():
         return np.asarray(im.open(filename + '.png'))
 
 
+    def _snap_feature_space(self, X, Y, filename):
+        """
+        Generate a snapshot of the feature space after transformation by the first hidden layer
+
+        Parameters:
+            X : ndarray
+                input data to be transformed by the model's hidden layer
+            Y : ndarray
+                target classes corresponding to input data X, used for coloring the scatter plot
+            filename : str
+                name of file to save the snapshot as a PNG image
+
+        Returns:
+            np.ndarray
+                Image array of the saved feature space snapshot
+        """
+        hidden_features = self._int_models[0].predict(X)
+        
+        h = .02
+        x_min, x_max = hidden_features[:, 0].min() - .1, hidden_features[:, 0].max() + .1
+        y_min, y_max = hidden_features[:, 1].min() - .1, hidden_features[:, 1].max() + .1
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                            np.arange(y_min, y_max, h))
+        meshData = np.c_[xx.ravel(), yy.ravel()]
+
+        fig, ax = plt.subplots(frameon=False)
+        ax.scatter(hidden_features[:, 0], hidden_features[:, 1], 
+                color=COLORS[Y].tolist(), s=100, alpha=.9)
+        
+        hidden_layer_model = keras.Sequential([self.model.layers[1]])
+        
+        Z = hidden_layer_model.predict(meshData)
+        Z = np.array([z[0] for z in Z]).reshape(xx.shape)
+        ax.contourf(xx, yy, Z, alpha=.4, cmap=CMAP)
+        
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        
+        fig.savefig(filename + '.png')
+        plt.close()
+        return np.asarray(im.open(filename + '.png'))
+
+
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
         """
         Takes two lists of images and stacks each image in one list on top
@@ -321,7 +367,7 @@ class Visualizer():
         self._graph = self._graph_original_copy.copy()
 
 
-    def fit(self, X, Y, snap_freq=10, filename='decision_boundary', duration=1000, **kwargs):
+    def fit(self, X, Y, snap_freq=10, filename='decision_boundary', duration=1000, view_feature_space=False, **kwargs):
         """
         Make GIF from snapshots of decision boundary at given snap_freq of epochs during training
 
@@ -331,7 +377,7 @@ class Visualizer():
             Y : ndarray
                 classes to be learned
             snap_freq : int
-                number of epochs after which to take a snapshot
+                number of epochs after which to take a snapshot 
             filename : str
                 name of file to save as GIF
             duration : int
@@ -350,9 +396,37 @@ class Visualizer():
         else:
             epochs = snap_freq
 
+        temp_dir = "snapshots"
+        os.makedirs(temp_dir, exist_ok=True)
+
         for _ in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # TODO: make this function more efficient
+
+            if (view_feature_space):
+
+
+                if (len(self.model.layers) > 3):
+                    raise ValueError("The model must have only one hidden layer for this visualization")
+
+                fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+                axes[0].imshow(self._snap_decision_boundary(X, Y, filename))
+                axes[0].axis('off')
+                axes[0].set_title("Input Space")
+
+                axes[1].imshow(self._snap_feature_space(X, Y, filename))
+                axes[1].axis('off')
+                axes[1].set_title("Feature Space")
+
+                temp_filename = os.path.join(temp_dir, f"epoch_{epoch}.png")
+                fig.savefig(temp_filename, format='png')
+                plt.close(fig)
+
+                images.append(im.open(temp_filename))
+
+            else:
+                images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
 
             if self.model.loss == 'binary_crossentropy':
                 images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
