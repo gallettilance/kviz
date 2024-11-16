@@ -7,7 +7,6 @@ tests_require = [
   'pytest',
   'pytest-cov',
   'testfixtures',
-  'scikit-learn',
 ]
 
 setup(
