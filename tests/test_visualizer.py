@@ -56,3 +56,18 @@ def test_fit():
     dg = Visualizer(model)
     dg.fit(X, Y, 10, 'test_fit', 100, epochs=200, verbose=0, batch_size=50)
     dg.view_activations_for(X, 'test_fit_activations', 100)
+
+
+def test_regression():
+    model = keras.models.Sequential()
+    model.add(layers.Dense(10, input_dim=1, activation='sigmoid'))
+    model.add(layers.Dense(10, activation='relu'))
+    model.add(layers.Dense(1, activation=None))
+    model.compile(loss="mean_squared_error")
+
+    SAMPLE_SIZE = 200
+    X = -10.0 + 20.0 * np.random.random(SAMPLE_SIZE)
+    Y = -2 + 3 * X + 5 * np.cos(X) + np.random.randn(SAMPLE_SIZE) * 2
+
+    dg = Visualizer(model)
+    dg.fit(X, Y, 100, 'test_regression', 100, epochs=10000, verbose=0, batch_size=200)

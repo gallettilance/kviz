@@ -45,19 +45,16 @@ class Visualizer():
                 a compiled keras sequential model with only dense layers
 
         Methods:
-            get_graph : returns nx.DiGraph
-                DiGraph is computed based on the model provided
-                you can access this attribute using this method
+            render :
+                Creates a Graph visualization of the model
 
-            set_graph : takes nx.DiGraph
-                DiGraph is computed based on the model provided
-                you can set this attribute to a modified DiGraph
-                using this method
+            fit :
+                Make GIF from snapshots of decision boundary at
+                given intervals of epochs during training
 
-            animate_activations :
-                Can print the network architecture or, if input
-                is provided, show a GIF of the activations of each
-                Neuron based on the input provided.
+            view_activations_for :
+                Creates a GIF of the activations of each
+                Neuron for the input provided
     """
 
     def __init__(self, model):
@@ -237,6 +234,24 @@ class Visualizer():
         return np.asarray(im.open(filename + '.png'))
 
 
+    def _snap_regression(self, X, Y, filename):
+        """
+        Take snapshot of the regression line
+        """
+        x_min, x_max = X.min() - .5, X.max() + .5
+        y_min, y_max = Y.min() - .5, Y.max() + .5
+        xplot = np.linspace(x_min, x_max, 200)
+        fig, ax = plt.subplots(frameon=False)
+        ax.scatter(X, Y, color=COLORS[1], s=40, alpha=.7)
+        ax.plot(xplot, self.model.predict(xplot.reshape(X.shape)), linewidth=2, color=COLORS[0])
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        fig.savefig(filename + '.png')
+        plt.close()
+
+        return np.asarray(im.open(filename + '.png'))
+
+
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
         """
         Takes two lists of images and stacks each image in one list on top
@@ -308,7 +323,7 @@ class Visualizer():
 
     def fit(self, X, Y, snap_freq=10, filename='decision_boundary', duration=1000, **kwargs):
         """
-        Make GIF from snapshots of decision boundary at given snap_freq
+        Make GIF from snapshots of decision boundary at given snap_freq of epochs during training
 
         Parameters:
             X : ndarray
@@ -338,7 +353,11 @@ class Visualizer():
         for _ in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # TODO: make this function more efficient
-            images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
+
+            if self.model.loss == 'binary_crossentropy':
+                images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
+            if self.model.loss == 'mean_squared_error':
+                images.append(im.fromarray(self._snap_regression(X, Y, filename)))
 
         self._convert_gif(images, filename, duration)
         return self.model
