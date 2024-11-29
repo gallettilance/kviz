@@ -67,6 +67,7 @@ You can visualize the learned decision boundary of your model as such:
 
 Which produces the following GIF:
 
+
 <p align="center">
     <img src="https://github.com/gallettilance/kviz/blob/master/examples/circle_relu_model.gif?raw=true"/>
 </p>

@@ -237,24 +237,6 @@ class Visualizer():
         return np.asarray(im.open(filename + '.png'))
 
 
-    def _snap_regression(self, X, Y, filename):
-        """
-        Take snapshot of the regression line
-        """
-        x_min, x_max = X.min() - .5, X.max() + .5
-        y_min, y_max = Y.min() - .5, Y.max() + .5
-        xplot = np.linspace(x_min, x_max, 200)
-        fig, ax = plt.subplots(frameon=False)
-        ax.scatter(X, Y, color=COLORS[1], s=40, alpha=.7)
-        ax.plot(xplot, self.model.predict(xplot.reshape(X.shape)), linewidth=2, color=COLORS[0])
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
-        fig.savefig(filename + '.png')
-        plt.close()
-
-        return np.asarray(im.open(filename + '.png'))
-
-
     def _snap_feature_space(self, X, Y, filename):
         """
         Generate a snapshot of the feature space after transformation by the first hidden layer
@@ -272,27 +254,26 @@ class Visualizer():
                 Image array of the saved feature space snapshot
         """
         hidden_features = self._int_models[0].predict(X)
-        
         h = .02
         x_min, x_max = hidden_features[:, 0].min() - .1, hidden_features[:, 0].max() + .1
         y_min, y_max = hidden_features[:, 1].min() - .1, hidden_features[:, 1].max() + .1
         xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                            np.arange(y_min, y_max, h))
+                             np.arange(y_min, y_max, h))
         meshData = np.c_[xx.ravel(), yy.ravel()]
 
         fig, ax = plt.subplots(frameon=False)
-        ax.scatter(hidden_features[:, 0], hidden_features[:, 1], 
-                color=COLORS[Y].tolist(), s=100, alpha=.9)
-        
+        ax.scatter(hidden_features[:, 0], hidden_features[:, 1],
+                   color=COLORS[Y].tolist(), s=100, alpha=.9)
+
         hidden_layer_model = keras.Sequential([self.model.layers[1]])
-        
+
         Z = hidden_layer_model.predict(meshData)
         Z = np.array([z[0] for z in Z]).reshape(xx.shape)
         ax.contourf(xx, yy, Z, alpha=.4, cmap=CMAP)
-        
+
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
-        
+
         fig.savefig(filename + '.png')
         plt.close()
         return np.asarray(im.open(filename + '.png'))
@@ -377,11 +358,13 @@ class Visualizer():
             Y : ndarray
                 classes to be learned
             snap_freq : int
-                number of epochs after which to take a snapshot 
+                number of epochs after which to take a snapshot
             filename : str
                 name of file to save as GIF
             duration : int
                 duration in ms between images in GIF
+            view_feature_space : bool
+                flag to display the decision boundary in hidden feature space
             **kwargs : other params
                 paramter inputs to model.fit
 
@@ -399,10 +382,9 @@ class Visualizer():
         temp_dir = "snapshots"
         os.makedirs(temp_dir, exist_ok=True)
 
-        for _ in range(int(epochs / snap_freq)):
+        for epoch in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # TODO: make this function more efficient
-
             if (view_feature_space):
 
 
@@ -509,7 +491,6 @@ class Visualizer():
 
         self._stack_gifs(network_images, input_images, filename, duration)
         return
-
 
     def render(self, filename='graph'):
         """

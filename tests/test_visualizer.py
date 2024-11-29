@@ -7,7 +7,6 @@ import sklearn.datasets as datasets
 
 from kviz.visualizer import Visualizer
 
-import os
 
 def test_render():
     ACTIVATION = "sigmoid"
