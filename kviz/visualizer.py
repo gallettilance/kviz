@@ -237,6 +237,23 @@ class Visualizer():
         return np.asarray(im.open(filename + '.png'))
 
 
+    def _snap_regression(self, X, Y, filename):
+        """
+        Take snapshot of the regression line
+        """
+        x_min, x_max = X.min() - .5, X.max() + .5
+        y_min, y_max = Y.min() - .5, Y.max() + .5
+        xplot = np.linspace(x_min, x_max, 200)
+        fig, ax = plt.subplots(frameon=False)
+        ax.scatter(X, Y, color=COLORS[1], s=40, alpha=.7)
+        ax.plot(xplot, self.model.predict(xplot.reshape(X.shape)), linewidth=2, color=COLORS[0])
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        fig.savefig(filename + '.png')
+        plt.close()
+        return np.asarray(im.open(filename + '.png'))
+
+
     def _snap_feature_space(self, X, Y, filename):
         """
         Generate a snapshot of the feature space after transformation by the first hidden layer
