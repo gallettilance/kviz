@@ -19,7 +19,7 @@ setup(
     'networkx',
     'pygraphviz',
     'matplotlib',
-    
+
   ],
   python_requires='>=3.9, <4',
   setup_requires=['pytest-runner'],

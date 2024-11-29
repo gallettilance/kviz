@@ -74,6 +74,7 @@ def test_regression():
     dg = Visualizer(model)
     dg.fit(X, Y, 100, 'test_regression', 100, epochs=10000, verbose=0, batch_size=200)
 
+
 def test_feature_space():
     model = keras.models.Sequential()
     model.add(layers.Dense(2, input_dim=2, activation='relu'))
@@ -87,4 +88,5 @@ def test_feature_space():
     Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
 
     viz = Visualizer(model)
-    viz.fit(X, Y, snap_freq=20, filename='feature space', duration=300, view_feature_space=True, batch_size=4, epochs=1000, verbose=0)
+    viz.fit(X, Y, snap_freq=20, filename='feature space', duration=300,
+            view_feature_space=True, batch_size=4, epochs=1000, verbose=0)
