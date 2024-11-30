@@ -18,6 +18,8 @@ Copyright 2024 Lance Galletti
 import numpy as np
 from PIL import Image as im
 import os
+import shutil
+
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex, LinearSegmentedColormap
@@ -278,22 +280,29 @@ class Visualizer():
                              np.arange(y_min, y_max, h))
         meshData = np.c_[xx.ravel(), yy.ravel()]
 
-        fig, ax = plt.subplots(frameon=False)
-        ax.scatter(hidden_features[:, 0], hidden_features[:, 1],
-                   color=COLORS[Y].tolist(), s=100, alpha=.9)
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+        axes[0].imshow(self._snap_decision_boundary(X, Y, filename))
+        axes[0].axis('off')
+        axes[0].set_title("Input Space")
+
+        axes[1].scatter(hidden_features[:, 0], hidden_features[:, 1],
+                        color=COLORS[Y].tolist(), s=100, alpha=0.9)
 
         hidden_layer_model = keras.Sequential([self.model.layers[1]])
 
         Z = hidden_layer_model.predict(meshData)
         Z = np.array([z[0] for z in Z]).reshape(xx.shape)
-        ax.contourf(xx, yy, Z, alpha=.4, cmap=CMAP)
+        axes[1].contourf(xx, yy, Z, alpha=0.4, cmap=CMAP)
 
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
+        axes[1].set_xlim(x_min, x_max)
+        axes[1].set_ylim(y_min, y_max)
+        axes[1].set_title("Feature Space at Hidden Layer 1")
 
-        fig.savefig(filename + '.png')
-        plt.close()
-        return np.asarray(im.open(filename + '.png'))
+        fig.savefig(filename + '_combined.png', bbox_inches='tight')
+        plt.close(fig)
+
+        return np.asarray(im.open(filename + '_combined.png'))
 
 
     def _stack_gifs(self, imgs1, imgs2, filename, duration):
@@ -396,43 +405,32 @@ class Visualizer():
         else:
             epochs = snap_freq
 
-        temp_dir = "snapshots"
+        temp_dir = ".snapshots"
         os.makedirs(temp_dir, exist_ok=True)
 
         for epoch in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # TODO: make this function more efficient
             if (view_feature_space):
-
-
                 if (len(self.model.layers) > 3):
                     raise ValueError("The model must have only one hidden layer for this visualization")
-
-                fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-                axes[0].imshow(self._snap_decision_boundary(X, Y, filename))
-                axes[0].axis('off')
-                axes[0].set_title("Input Space")
-
-                axes[1].imshow(self._snap_feature_space(X, Y, filename))
-                axes[1].axis('off')
-                axes[1].set_title("Feature Space")
-
-                temp_filename = os.path.join(temp_dir, f"epoch_{epoch}.png")
-                fig.savefig(temp_filename, format='png')
-                plt.close(fig)
-
-                images.append(im.open(temp_filename))
-
+                images.append(im.fromarray(self._snap_feature_space(X, Y, filename)))
             else:
                 images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
 
             if self.model.loss == 'binary_crossentropy':
-                images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
+                if (view_feature_space):
+                    if (len(self.model.layers) > 3):
+                        raise ValueError("The model must have only one hidden layer for this visualization")
+                    images.append(im.fromarray(self._snap_feature_space(X, Y, filename)))
+                else:
+                    images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
             if self.model.loss == 'mean_squared_error':
                 images.append(im.fromarray(self._snap_regression(X, Y, filename)))
 
         self._convert_gif(images, filename, duration)
+
+        shutil.rmtree(temp_dir)
         return self.model
 
 
@@ -508,6 +506,7 @@ class Visualizer():
 
         self._stack_gifs(network_images, input_images, filename, duration)
         return
+
 
     def render(self, filename='graph'):
         """
