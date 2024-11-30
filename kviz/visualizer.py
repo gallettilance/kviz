@@ -17,8 +17,6 @@ Copyright 2024 Lance Galletti
 
 import numpy as np
 from PIL import Image as im
-import os
-import shutil
 
 
 import matplotlib.pyplot as plt
@@ -405,18 +403,9 @@ class Visualizer():
         else:
             epochs = snap_freq
 
-        temp_dir = ".snapshots"
-        os.makedirs(temp_dir, exist_ok=True)
-
         for epoch in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # TODO: make this function more efficient
-            if (view_feature_space):
-                if (len(self.model.layers) > 3):
-                    raise ValueError("The model must have only one hidden layer for this visualization")
-                images.append(im.fromarray(self._snap_feature_space(X, Y, filename)))
-            else:
-                images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
 
             if self.model.loss == 'binary_crossentropy':
                 if (view_feature_space):
@@ -429,8 +418,6 @@ class Visualizer():
                 images.append(im.fromarray(self._snap_regression(X, Y, filename)))
 
         self._convert_gif(images, filename, duration)
-
-        shutil.rmtree(temp_dir)
         return self.model
 
 
