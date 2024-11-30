@@ -3,6 +3,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import sklearn.datasets as datasets
 
+
+
 from kviz.visualizer import Visualizer
 
 
@@ -71,3 +73,20 @@ def test_regression():
 
     dg = Visualizer(model)
     dg.fit(X, Y, 100, 'test_regression', 100, epochs=10000, verbose=0, batch_size=200)
+
+
+def test_feature_space():
+    model = keras.models.Sequential()
+    model.add(layers.Dense(2, input_dim=2, activation='relu'))
+    model.add(layers.Dense(1, activation='sigmoid'))
+    model.compile(loss="binary_crossentropy")
+    print("no. of layers", len(model.layers))
+
+    # Generate data that looks like 2 concentric circles
+    t, _ = datasets.make_blobs(n_samples=200, centers=[[0, 0]], cluster_std=1, random_state=1)
+    X = np.array(list(filter(lambda x: x[0]**2 + x[1]**2 < 1 or x[0]**2 + x[1]**2 > 1.5, t)))
+    Y = np.array([1 if x[0]**2 + x[1]**2 >= 1 else 0 for x in X])
+
+    viz = Visualizer(model)
+    viz.fit(X, Y, snap_freq=20, filename='feature space', duration=300,
+            view_feature_space=True, batch_size=4, epochs=1000, verbose=0)
