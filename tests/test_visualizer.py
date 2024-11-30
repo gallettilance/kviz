@@ -1,6 +1,7 @@
 import numpy as np
 from tensorflow import keras
-
+from tensorflow.keras import layers
+import sklearn.datasets as datasets
 
 
 
