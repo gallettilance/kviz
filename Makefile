@@ -3,8 +3,8 @@ test:: ; tox -v
 build:: ; pip3 install --upgrade build
 build:: ; python3 -m build
 
-release:: ; cleanall
-release:: ; build
+release:: cleanall
+release:: build
 release:: ; pip3 install --upgrade twine
 release:: ; python3 -m twine upload dist/*
 
