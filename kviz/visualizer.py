@@ -182,7 +182,7 @@ class Visualizer():
         return np.asarray(im.open(filename + '.png'))
 
 
-    def _snap_X(self, indexes, X, filename, x_color="#3498db", x_marker="o"):
+    def _snap_X(self, indexes, X, Y, filename):
         """
         Take snapshot image of the input
 
@@ -195,47 +195,95 @@ class Visualizer():
                 list of the indexes of the point in X that should be bold
             X: List.
                 a list of coordinates of the points
+            Y: List.
+                a list of target values
             filename: str.
                 name of file to which visualization will be saved
-            x_color: str.
-                the color (in hex form) of the points in the pyplot graph
-            x_marker: str.
-                the shape of the points in the pyplot graph
         """
-        fig, ax = plt.subplots()
-        ax.scatter(X[:, 0], X[:, 1], s=300, marker=x_marker, facecolors='none', edgecolors=x_color)
-        for i in indexes:
-            ax.scatter(X[i, 0], X[i, 1], s=300, marker=x_marker, color=x_color)
-        ax.spines['bottom'].set_color(x_color)
-        ax.spines['left'].set_color(x_color)
-        ax.tick_params(axis='x', colors=x_color)
-        ax.tick_params(axis='y', colors=x_color)
-        fig.savefig(filename + '_X.png')
-        plt.close()
+        if X.shape[1] == 3:
+            fig = plt.figure(figsize=(6, 6), frameon=False)
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(X[:, 0], X[:, 1], X[:, 2], color=COLORS[Y].tolist(), s=100, alpha=.9)
+            for i in indexes:
+                ax.scatter(X[i, 0], X[i, 1], X[i, 1], color=COLORS[Y[i]], s=300)
+            fig.savefig(filename + '_X.png')
+            plt.close()
+        elif X.shape[1] == 2:
+            fig, ax = plt.subplots(frameon=False)
+            ax.scatter(X[:, 0], X[:, 1], color=COLORS[Y].tolist(), s=100, alpha=.9)
+            for i in indexes:
+                ax.scatter(X[i, 0], X[i, 1], color=COLORS[Y[i]], s=300, edgecolors='black')
+            fig.savefig(filename + '_X.png')
+            plt.close()
         return np.asarray(im.open(filename + '_X.png'))
 
 
-    def _snap_decision_boundary(self, X, Y, filename):
+    def _snap_decision_boundary(self, X, Y, filename, layer=0):
         """
         Take snapshot of input with decision boundary
         """
-        # create a mesh to plot in
-        h = .02  # step size in the mesh
-        x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
-        y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
-        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                             np.arange(y_min, y_max, h))
-        meshData = np.c_[xx.ravel(), yy.ravel()]
 
-        fig, ax = plt.subplots(frameon=False)
-        ax.scatter(X[:, 0], X[:, 1], color=COLORS[Y].tolist(), s=100, alpha=.9)
-        Z = self.model.predict(meshData).reshape(xx.shape)
-        ax.contourf(xx, yy, Z, alpha=.4, cmap=CMAP)
+        # create a mesh to plot in
+        # h = .02  # step size in the mesh
+        # x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+        # y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
+        # xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+        #                      np.arange(y_min, y_max, h))
+        # meshData = np.c_[xx.ravel(), yy.ravel()]
+
+        # if layer == 0:
+        #     fig, ax = plt.subplots(frameon=False)
+        #     ax.scatter(X[:, 0], X[:, 1], color=COLORS[Y].tolist(), s=100, alpha=.9)
+        #     Z = self.model.predict(meshData).reshape(xx.shape)
+        #     ax.contourf(xx, yy, Z, alpha=.4, cmap=CMAP)
+        #     fig.savefig(filename + '.png')
+        #     plt.close()
+
+        #     return np.asarray(im.open(filename + '.png'))
+
+        W = self.model.layers[layer].get_weights()[0]
+        B = self.model.layers[layer].get_weights()[1]
+
+        if X.shape[1] == 1:
+            x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+            fig, ax = plt.subplots(frameon=False)
+            ax.scatter(X[:, 0], np.zeros_like(X[:, 0]), color=COLORS[Y].tolist(), s=100, alpha=.9)
+            for i in range(W.shape[1]):
+                xx = np.linspace(y_min, y_max, 200)
+                ax.plot(np.zeros_like(xx) - B[i] / W[0][i], xx, linestyle='dashed', color='b')
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+
+        elif X.shape[1] == 2:
+            x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+            y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
+            fig, ax = plt.subplots(frameon=False)
+            ax.scatter(X[:, 0], X[:, 1], color=COLORS[Y].tolist(), s=100, alpha=.9)
+            for i in range(W.shape[1]):
+                xx = np.linspace(x_min, x_max, 200)
+                ax.plot(xx, - W[0][i] * xx / W[1][i] - B[i] / W[1][i], linestyle='dashed', color='b')
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+
+        elif X.shape[1] == 3:
+            h = .2
+            x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
+            y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
+            xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                                 np.arange(y_min, y_max, h))
+            fig = plt.figure(figsize=(6, 6), frameon=False)
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(X[:, 0], X[:, 1], X[:, 2], color=COLORS[Y].tolist(), s=100, alpha=.9)
+            for i in range(W.shape[1]):
+                Z = - W[0][i] * xx / W[2][i] - W[1][i] * yy / W[2][i] - B[i] / W[2][i]
+                ax.plot_surface(xx, yy, Z, color='y', alpha=.4)
+        else:
+            raise ValueError("Can't plot hidden layer with more > 3 dimensions")
+
         fig.savefig(filename + '.png')
         plt.close()
 
         return np.asarray(im.open(filename + '.png'))
-
 
     def _snap_regression(self, X, Y, filename):
         """
@@ -270,32 +318,20 @@ class Visualizer():
             np.ndarray
                 Image array of the saved feature space snapshot
         """
-        hidden_features = self._int_models[0].predict(X)
-        h = .02
-        x_min, x_max = hidden_features[:, 0].min() - .1, hidden_features[:, 0].max() + .1
-        y_min, y_max = hidden_features[:, 1].min() - .1, hidden_features[:, 1].max() + .1
-        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                             np.arange(y_min, y_max, h))
-        meshData = np.c_[xx.ravel(), yy.ravel()]
+        num_layers = len(self.model.layers)
+        fig = plt.figure(figsize=(6 * num_layers, 6), frameon=False)
 
-        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-        axes[0].imshow(self._snap_decision_boundary(X, Y, filename))
-        axes[0].axis('off')
-        axes[0].set_title("Input Space")
-
-        axes[1].scatter(hidden_features[:, 0], hidden_features[:, 1],
-                        color=COLORS[Y].tolist(), s=100, alpha=0.9)
-
-        hidden_layer_model = keras.Sequential([self.model.layers[1]])
-
-        Z = hidden_layer_model.predict(meshData)
-        Z = np.array([z[0] for z in Z]).reshape(xx.shape)
-        axes[1].contourf(xx, yy, Z, alpha=0.4, cmap=CMAP)
-
-        axes[1].set_xlim(x_min, x_max)
-        axes[1].set_ylim(y_min, y_max)
-        axes[1].set_title("Feature Space at Hidden Layer 1")
+        for layer in range(num_layers):
+            ax = fig.add_subplot(1, num_layers, layer + 1)
+            if layer == 0:
+                ax.imshow(self._snap_decision_boundary(X, Y, filename))
+                ax.axis('off')
+                ax.set_title("Input Space")
+            else:
+                feature_space = self._int_models[layer - 1].predict(X)
+                ax.imshow(self._snap_decision_boundary(feature_space, Y, filename, layer))
+                ax.axis('off')
+                ax.set_title("Feature Space at Hidden Layer " + str(layer))
 
         fig.savefig(filename + '_combined.png', bbox_inches='tight')
         plt.close(fig)
@@ -403,25 +439,25 @@ class Visualizer():
         else:
             epochs = snap_freq
 
-        for epoch in range(int(epochs / snap_freq)):
+        for _ in range(int(epochs / snap_freq)):
             self.model.fit(X, Y, epochs=snap_freq, **kwargs)
             self._int_models = self._get_int_models()  # TODO: make this function more efficient
 
-            if self.model.loss == 'binary_crossentropy':
-                if (view_feature_space):
-                    if (len(self.model.layers) > 3):
-                        raise ValueError("The model must have only one hidden layer for this visualization")
+            if self.model.loss == "binary_crossentropy":
+                if view_feature_space:
                     images.append(im.fromarray(self._snap_feature_space(X, Y, filename)))
                 else:
                     images.append(im.fromarray(self._snap_decision_boundary(X, Y, filename)))
-            if self.model.loss == 'mean_squared_error':
+            elif self.model.loss == "mean_squared_error":
                 images.append(im.fromarray(self._snap_regression(X, Y, filename)))
+            else:
+                raise ValueError("model loss not supported")
 
         self._convert_gif(images, filename, duration)
         return self.model
 
 
-    def view_activations_for(self, X, filename='activations', duration=1000, x_color="#3498db", x_marker="o"):
+    def view_activations_for(self, X, Y, filename='activations', duration=1000):
         """
         Creates an animation of the graph activated by each data point
 
@@ -488,7 +524,7 @@ class Visualizer():
                             }})
 
             network_images.append(self._snap_graph(filename))
-            input_images.append(self._snap_X([i], X, filename, x_color=x_color, x_marker=x_marker))
+            input_images.append(self._snap_X([i], X, Y, filename))
             self._reset()
 
         self._stack_gifs(network_images, input_images, filename, duration)
