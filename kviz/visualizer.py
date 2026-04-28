@@ -19,6 +19,15 @@ import numpy as np
 from PIL import Image as im
 
 
+# kviz only ever saves figures to disk (via fig.savefig); it never calls
+# plt.show(). Force a non-interactive backend before importing pyplot so
+# the library works headlessly. This is especially important on
+# macOS + Python 3.13, where matplotlib's default `macosx` backend can
+# SIGABRT when used alongside TensorFlow/Keras (resulting in no output GIF
+# / PNG and no Python-level traceback).
+import matplotlib
+if matplotlib.get_backend().lower() not in ("agg", "module://matplotlib_inline.backend_inline"):
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex, LinearSegmentedColormap
 
