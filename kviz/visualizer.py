@@ -19,14 +19,28 @@ import numpy as np
 from PIL import Image as im
 
 
+# kviz only ever saves figures to disk (via fig.savefig); it never calls
+# plt.show(). Force a non-interactive backend before importing pyplot so
+# the library works headlessly. This is especially important on
+# macOS + Python 3.13, where matplotlib's default `macosx` backend can
+# SIGABRT when used alongside TensorFlow/Keras (resulting in no output GIF
+# / PNG and no Python-level traceback).
+import matplotlib
+if matplotlib.get_backend().lower() not in ("agg", "module://matplotlib_inline.backend_inline"):
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex, LinearSegmentedColormap
 
 
-from networkx import DiGraph, set_node_attributes
+from networkx import DiGraph, Graph, set_node_attributes
 from networkx.drawing.nx_agraph import to_agraph
 
-import tensorflow.keras as keras
+try:
+    # Preferred import path; tends to be resolved by type checkers.
+    from tensorflow import keras
+except Exception:  # pragma: no cover
+    # Fallback for environments that have standalone Keras installed.
+    import keras  # type: ignore
 
 
 
@@ -36,6 +50,110 @@ tuples = list(zip(
     [COLORS[0], 'white', COLORS[1]])
 )
 CMAP = LinearSegmentedColormap.from_list("", tuples, 100)
+
+
+# Built-in Graphviz themes for NetworkArchitectureVisualizer.render().
+# Themes are merged (per-key) with any explicit graph_attrs / default_node_attrs
+# / default_edge_attrs that the caller passes; explicit values win.
+NETWORK_ARCH_THEMES = {
+    "layered": {
+        "graph_attrs": {
+            "rankdir": "LR",
+            "splines": "polyline",
+            "nodesep": "0.55",
+            "ranksep": "1.05",
+            "bgcolor": "white",
+        },
+        "node_attrs": {
+            "shape": "circle",
+            "style": "filled",
+            "fillcolor": "white",
+            "color": "#2c3e50",
+            "fontcolor": "#222222",
+            "fontsize": "9",
+            "width": "0.22",
+            "height": "0.22",
+            "fixedsize": "true",
+        },
+        "edge_attrs": {
+            "arrowsize": "0.5",
+        },
+    },
+    "weighted": {
+        "graph_attrs": {
+            "rankdir": "LR",
+            "splines": "spline",
+            "nodesep": "0.6",
+            "ranksep": "1.1",
+            "bgcolor": "white",
+        },
+        "node_attrs": {
+            "shape": "circle",
+            "style": "filled",
+            "fillcolor": "white",
+            "color": "#2c3e50",
+            "fontsize": "9",
+            "width": "0.24",
+            "height": "0.24",
+            "fixedsize": "true",
+        },
+        "edge_attrs": {
+            "arrowsize": "0.4",
+        },
+    },
+    "pruned": {
+        "graph_attrs": {
+            "rankdir": "LR",
+            "splines": "polyline",
+            "nodesep": "0.55",
+            "ranksep": "1.05",
+            "bgcolor": "white",
+        },
+        "node_attrs": {
+            "shape": "circle",
+            "style": "filled",
+            "fillcolor": "white",
+            "color": "#2c3e50",
+            "fontsize": "9",
+            "width": "0.22",
+            "height": "0.22",
+            "fixedsize": "true",
+        },
+        "edge_attrs": {
+            "arrowsize": "0.45",
+        },
+    },
+}
+
+
+def _resolve_theme(theme):
+    """Return (graph_attrs, node_attrs, edge_attrs) for a theme spec.
+
+    `theme` may be None, a string key into NETWORK_ARCH_THEMES, or a dict
+    that already follows the {"graph_attrs": ..., "node_attrs": ...,
+    "edge_attrs": ...} shape.
+    """
+    if theme is None:
+        return {}, {}, {}
+    if isinstance(theme, str):
+        if theme not in NETWORK_ARCH_THEMES:
+            raise ValueError(
+                f"Unknown theme {theme!r}. "
+                f"Available: {sorted(NETWORK_ARCH_THEMES)}"
+            )
+        spec = NETWORK_ARCH_THEMES[theme]
+    elif isinstance(theme, dict):
+        spec = theme
+    else:
+        raise TypeError(
+            "theme must be None, a string theme name, or a dict; "
+            f"got {type(theme).__name__}"
+        )
+    return (
+        dict(spec.get("graph_attrs", {})),
+        dict(spec.get("node_attrs", {})),
+        dict(spec.get("edge_attrs", {})),
+    )
 
 
 class Visualizer():
@@ -407,6 +525,153 @@ class Visualizer():
         """
         self._graph = self._graph_original_copy.copy()
 
+    def _normalize_activations(self, acts):
+        """
+        Normalize activations to [0, 1] for colormapping.
+
+        This library often visualizes activations with colormaps that expect
+        values in [0, 1], but activations can be outside that range depending
+        on the layer (e.g., linear / tanh / relu pre/post).
+        """
+        a = np.asarray(acts, dtype=float)
+        if a.size == 0:
+            return a
+        a_min = float(np.nanmin(a))
+        a_max = float(np.nanmax(a))
+        if not np.isfinite(a_min) or not np.isfinite(a_max) or a_max == a_min:
+            return np.zeros_like(a, dtype=float)
+        return (a - a_min) / (a_max - a_min)
+
+    def _apply_layer_node_styles(
+        self,
+        layer_index,
+        acts,
+        *,
+        cmap,
+        fill=True,
+        show_sign_labels=False,
+    ):
+        """
+        Apply node styles for a given layer index.
+
+        Parameters:
+            layer_index : int
+                Graph layer index (0 = inputs, 1.. = subsequent layers).
+            acts : array-like
+                Activations for nodes in the specified layer.
+            cmap : matplotlib colormap
+                Colormap used to map normalized activations to colors.
+            fill : bool
+                Whether to use filled node styles.
+            show_sign_labels : bool
+                For input layer: optionally label '+' / '-' based on sign.
+        """
+        acts = np.asarray(acts).reshape(-1)
+        normed = self._normalize_activations(acts)
+        for n in range(len(acts)):
+            index = self._unique_index(layer_index, n)
+            if layer_index == 0 and show_sign_labels:
+                set_node_attributes(self._graph, {index: {'label': "+" if acts[n] > 0 else "-"}})
+            else:
+                attrs = {
+                    'style': 'filled' if fill else 'solid',
+                    'color': str(rgb2hex(cmap(float(normed[n])))),
+                }
+                set_node_attributes(self._graph, {index: attrs})
+
+    def view_forward_pass_for(
+        self,
+        x,
+        filename="forward_pass",
+        duration=600,
+        steps_per_layer=1,
+        show_input_signs=True,
+        fade_previous=True,
+    ):
+        """
+        Animate a single input's activations flowing through the network.
+
+        Compared to `view_activations_for`, this renders a **layer-by-layer**
+        animation: frame 0 shows the input, then each subsequent frame shows
+        the next layer activating based on the same input.
+
+        Parameters:
+            x : array-like, shape (n_features,) or (1, n_features)
+                A single input sample to feed forward through the network.
+            filename : str
+                Output file prefix. Saves `{filename}.gif` (and temporary PNGs).
+            duration : int
+                Duration in ms between GIF frames.
+            steps_per_layer : int
+                Number of interpolation steps between layers (>= 1).
+                Higher values make the activation transition smoother.
+            show_input_signs : bool
+                If True, label input nodes with '+' / '-' based on sign.
+            fade_previous : bool
+                If True, previously-activated layers are kept visible but
+                slightly muted to emphasize the current layer.
+        """
+        steps_per_layer = max(1, int(steps_per_layer))
+
+        x_arr = np.asarray(x)
+        if x_arr.ndim == 1:
+            x_arr = x_arr.reshape(1, -1)
+        if x_arr.shape[0] != 1:
+            raise ValueError("view_forward_pass_for expects a single input sample (shape (n_features,) or (1, n_features))")
+
+        # Build activations for each graph-layer: inputs then each Dense output.
+        activations = [x_arr[0]]
+        for m in self._int_models:
+            activations.append(np.asarray(m.predict(x_arr))[0])
+        # `activations` length is (num_layers + 1), matching graph layer indices 0..L
+
+        # Colormaps: green-ish for hidden layers, purple/blue for outputs.
+        cvals = [0, 1]
+        colors = ['white', 'green']
+        norm = plt.Normalize(min(cvals), max(cvals))
+        tuples = list(zip(map(norm, cvals), colors))
+        CMAP_GREEN = LinearSegmentedColormap.from_list("", tuples, 100)
+
+        images = []
+
+        # Pre-style input layer once (labels optional).
+        self._apply_layer_node_styles(
+            0,
+            activations[0],
+            cmap=CMAP_GREEN,
+            fill=False,
+            show_sign_labels=show_input_signs,
+        )
+        images.append(im.fromarray(self._snap_graph(filename)))
+
+        # Animate layer-by-layer activation.
+        last_layer = len(activations) - 1
+        for layer_idx in range(1, last_layer + 1):
+            acts = activations[layer_idx]
+            is_output = (layer_idx == last_layer)
+            cmap = CMAP if is_output else CMAP_GREEN
+
+            # Interpolate from "off" to actual activations for smoother playback.
+            off = np.zeros_like(np.asarray(acts, dtype=float))
+            for s in range(1, steps_per_layer + 1):
+                t = s / steps_per_layer
+                blended = off * (1 - t) + np.asarray(acts, dtype=float) * t
+
+                if fade_previous:
+                    # Muted previous layers for context.
+                    for prev in range(1, layer_idx):
+                        prev_acts = activations[prev]
+                        prev_is_output = (prev == last_layer)
+                        prev_cmap = CMAP if prev_is_output else CMAP_GREEN
+                        self._apply_layer_node_styles(prev, prev_acts, cmap=prev_cmap, fill=True)
+
+                self._apply_layer_node_styles(layer_idx, blended, cmap=cmap, fill=True)
+                images.append(im.fromarray(self._snap_graph(filename)))
+
+        self._convert_gif(images, filename, duration)
+        self._reset()
+        return
+
 
     def fit(self, X, Y, snap_freq=10, filename='decision_boundary', duration=1000, view_feature_space=False, **kwargs):
         """
@@ -545,3 +810,316 @@ class Visualizer():
 
         self._snap_graph(filename)
         return
+
+
+class NetworkArchitectureVisualizer:
+    """
+    Utility for rendering an arbitrary network architecture diagram using
+    NetworkX + PyGraphviz (Graphviz).
+
+    This is intentionally model-agnostic: provide nodes/edges (or an existing
+    NetworkX graph) and render to an image using Graphviz layout.
+    """
+
+    def __init__(self, graph=None, directed=True):
+        """
+        Parameters:
+            graph : networkx.Graph | networkx.DiGraph | None
+                Existing graph to render. If None, an empty graph is created.
+            directed : bool
+                If graph is None, controls whether to create a DiGraph (True)
+                or Graph (False).
+        """
+        if graph is None:
+            self.graph = DiGraph() if directed else Graph()
+        else:
+            self.graph = graph
+
+    @classmethod
+    def from_keras_model(
+        cls,
+        model,
+        *,
+        weight_styling=False,
+        input_color="#3498db",
+        hidden_color="#2ecc71",
+        output_color="#3498db",
+        border_color="#2c3e50",
+        node_border_width="0.8",
+        skip_non_dense=True,
+    ):
+        """
+        Build a NetworkArchitectureVisualizer directly from a Keras
+        Sequential model whose trainable layers are Dense.
+
+        Node ids follow the convention ``f"{layer_idx}_{neuron_idx}"`` where
+        ``layer_idx == 0`` is the input layer.
+
+        Parameters:
+            model : keras.Model
+                Sequential / functional model. Only Dense layers are walked.
+            weight_styling : bool
+                If True, edges are colored / sized by their corresponding
+                weight magnitude and sign (zeros become faint dashed). This
+                is the same as constructing the graph and then calling
+                ``style_edges_by_weights(model)``.
+            input_color, hidden_color, output_color : str
+                Fill colors for input, hidden, and output neurons.
+            border_color : str
+                Outline color used for every neuron.
+            node_border_width : str
+                Graphviz ``penwidth`` for the node outline.
+            skip_non_dense : bool
+                If True, non-Dense layers (Dropout, BatchNorm, etc.) are
+                silently skipped. If False, the method raises on the first
+                non-Dense layer.
+
+        Returns:
+            NetworkArchitectureVisualizer
+        """
+        dense_layers = []
+        for layer in model.layers:
+            if isinstance(layer, keras.layers.Dense):
+                dense_layers.append(layer)
+            elif not skip_non_dense:
+                raise ValueError(
+                    "from_keras_model only supports Dense layers; got "
+                    f"{type(layer).__name__}. Pass skip_non_dense=True to ignore."
+                )
+
+        if not dense_layers:
+            raise ValueError(
+                "from_keras_model requires at least one Dense layer."
+            )
+
+        graph = DiGraph()
+        in_dim = int(dense_layers[0].get_weights()[0].shape[0])
+
+        for i in range(in_dim):
+            graph.add_node(
+                f"0_{i}",
+                shape="circle",
+                style="filled",
+                fillcolor=input_color,
+                color=border_color,
+                penwidth=node_border_width,
+                label="",
+            )
+
+        prev_dim = in_dim
+        weight_matrices = []
+        for layer_idx, layer in enumerate(dense_layers, start=1):
+            W = layer.get_weights()[0]
+            out_dim = int(W.shape[1])
+            is_output = (layer_idx == len(dense_layers))
+            node_color = output_color if is_output else hidden_color
+
+            for o in range(out_dim):
+                graph.add_node(
+                    f"{layer_idx}_{o}",
+                    shape="circle",
+                    style="filled",
+                    fillcolor=node_color,
+                    color=border_color,
+                    penwidth=node_border_width,
+                    label="",
+                )
+                for i in range(prev_dim):
+                    graph.add_edge(
+                        f"{layer_idx - 1}_{i}",
+                        f"{layer_idx}_{o}",
+                    )
+
+            weight_matrices.append(W)
+            prev_dim = out_dim
+
+        instance = cls(graph)
+        if weight_styling:
+            instance.style_edges_by_weights(weight_matrices)
+        return instance
+
+    def style_edges_by_weights(
+        self,
+        weights,
+        *,
+        pos_color="#B20000",
+        neg_color="#1f3fa8",
+        zero_color="#dddddd",
+        min_width=0.35,
+        max_width=3.0,
+        zero_threshold=0.0,
+    ):
+        """
+        Color and size edges based on signed weight magnitude.
+
+        Edges with ``|w| <= zero_threshold`` are drawn faint and dashed,
+        which is exactly the visual you want for showing pruning. Positive
+        weights use ``pos_color``, negative weights use ``neg_color``, and
+        each layer is normalized by its own max-abs weight so a layer of
+        small weights still produces visible edges.
+
+        Parameters:
+            weights : keras.Model | Iterable[np.ndarray]
+                Either a Keras model (Dense layers are extracted in order)
+                or an iterable of 2D weight matrices in layer order. Edges
+                between layer L-1 and layer L use ``weights[L-1]``.
+            pos_color, neg_color, zero_color : str
+                Edge colors for positive, negative, and effectively-zero
+                weights.
+            min_width, max_width : float
+                Range mapped to ``penwidth`` based on normalized magnitude.
+            zero_threshold : float
+                Absolute magnitude at or below which a weight is treated as
+                zero (drawn dashed).
+
+        Returns:
+            self
+        """
+        if hasattr(weights, "layers"):
+            mats = []
+            for layer in weights.layers:
+                if isinstance(layer, keras.layers.Dense):
+                    mats.append(layer.get_weights()[0])
+            weights = mats
+
+        weights = [np.asarray(W) for W in weights]
+        if not weights:
+            return self
+
+        for layer_idx, W in enumerate(weights, start=1):
+            denom = float(np.max(np.abs(W))) + 1e-12
+            in_dim, out_dim = W.shape
+            for i in range(in_dim):
+                for o in range(out_dim):
+                    u = f"{layer_idx - 1}_{i}"
+                    v = f"{layer_idx}_{o}"
+                    if not self.graph.has_edge(u, v):
+                        continue
+                    w = float(W[i, o])
+                    if abs(w) <= zero_threshold:
+                        self.graph.edges[u, v].update(
+                            color=zero_color,
+                            style="dashed",
+                            penwidth=f"{min_width:.2f}",
+                        )
+                    else:
+                        color = pos_color if w > 0 else neg_color
+                        width = min_width + (max_width - min_width) * (
+                            abs(w) / denom
+                        )
+                        self.graph.edges[u, v].update(
+                            color=color,
+                            style="solid",
+                            penwidth=f"{width:.2f}",
+                        )
+        return self
+
+    def add_nodes(self, nodes, default_attrs=None):
+        """
+        Add nodes to the graph.
+
+        Parameters:
+            nodes : Iterable[str] | Iterable[tuple[str, dict]]
+                Either a list of node ids, or (node_id, attrs_dict) tuples.
+            default_attrs : dict | None
+                Attributes applied to nodes that are provided as ids only.
+        """
+        default_attrs = default_attrs or {}
+        for n in nodes:
+            if isinstance(n, tuple) and len(n) == 2 and isinstance(n[1], dict):
+                node_id, attrs = n
+                self.graph.add_node(node_id, **attrs)
+            else:
+                self.graph.add_node(n, **default_attrs)
+        return self
+
+    def add_edges(self, edges, default_attrs=None):
+        """
+        Add edges to the graph.
+
+        Parameters:
+            edges : Iterable[tuple[str, str]] | Iterable[tuple[str, str, dict]]
+                Either (src, dst) tuples, or (src, dst, attrs_dict) tuples.
+            default_attrs : dict | None
+                Attributes applied to edges without explicit attrs.
+        """
+        default_attrs = default_attrs or {}
+        for e in edges:
+            if isinstance(e, tuple) and len(e) == 3 and isinstance(e[2], dict):
+                u, v, attrs = e
+                self.graph.add_edge(u, v, **attrs)
+            else:
+                u, v = e
+                self.graph.add_edge(u, v, **default_attrs)
+        return self
+
+    def render(
+        self,
+        filename="network_architecture",
+        layout="dot",
+        graph_attrs=None,
+        default_node_attrs=None,
+        default_edge_attrs=None,
+        theme="layered",
+    ):
+        """
+        Render the architecture to a PNG using Graphviz.
+
+        Parameters:
+            filename : str
+                Output file prefix ('.png' is appended).
+            layout : str
+                Graphviz layout program (e.g. 'dot', 'neato', 'fdp', 'sfdp').
+            graph_attrs : dict | None
+                Attributes applied to the overall graph (e.g. rankdir, splines).
+                Merged on top of the theme; explicit values win.
+            default_node_attrs : dict | None
+                Default node styling applied via Graphviz (Agraph.node_attr).
+                Merged on top of the theme; explicit values win.
+            default_edge_attrs : dict | None
+                Default edge styling applied via Graphviz (Agraph.edge_attr).
+                Merged on top of the theme; explicit values win.
+            theme : str | dict | None
+                Built-in styling preset. One of "layered" (default),
+                "weighted", "pruned", or a dict with the same shape as
+                entries in ``NETWORK_ARCH_THEMES``. Pass ``theme=None`` for
+                the previous bare-Graphviz behavior.
+        """
+        g_attrs, n_attrs, e_attrs = _resolve_theme(theme)
+        if graph_attrs:
+            g_attrs.update(graph_attrs)
+        if default_node_attrs:
+            n_attrs.update(default_node_attrs)
+        if default_edge_attrs:
+            e_attrs.update(default_edge_attrs)
+
+        A = to_agraph(self.graph)
+
+        for k, v in g_attrs.items():
+            A.graph_attr[k] = v
+        for k, v in n_attrs.items():
+            A.node_attr[k] = v
+        for k, v in e_attrs.items():
+            A.edge_attr[k] = v
+
+        A.layout(prog=layout)
+        A.draw(filename + ".png")
+        return filename + ".png"
+
+    def _repr_png_(self):
+        """
+        Render to PNG bytes for inline Jupyter display.
+
+        This makes ``NetworkArchitectureVisualizer.from_keras_model(model)``
+        render automatically as the last expression in a notebook cell
+        (no need to call ``render`` and ``display(Image(...))`` yourself).
+        Uses the default ``theme="layered"`` styling.
+        """
+        if len(self.graph) == 0:
+            return None
+        import os
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = self.render(filename=os.path.join(td, "preview"))
+            with open(path, "rb") as f:
+                return f.read()
